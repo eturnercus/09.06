@@ -41,9 +41,12 @@ class PreviewWindow:
 
     def update_frame(self, image: Image.Image, changing: bool) -> None:
         preview = image.copy()
-        preview.thumbnail((320, 240), Image.Resampling.LANCZOS)
-        self._photo = ImageTk.PhotoImage(preview)
-        self.label.configure(image=self._photo)
+        try:
+            preview.thumbnail((320, 240), Image.Resampling.LANCZOS)
+            self._photo = ImageTk.PhotoImage(preview)
+            self.label.configure(image=self._photo)
+        finally:
+            preview.close()
         if changing:
             self.status_var.set("Изменение…")
             self.win.configure(bg="#3d1f1f")
@@ -76,17 +79,34 @@ class MonitorSlot:
             sensitivity=app.sensitivity_var.get(),
         )
         self.list_item_id: str | None = None
+        self._pending_image: Image.Image | None = None
+        self._pending_changing = False
+        self._preview_scheduled = False
         if running:
             self.start()
 
     def _on_frame(self, image: Image.Image, changing: bool) -> None:
-        self.app.root.after(
-            0, lambda: self._update_preview_safe(image, changing)
-        )
+        # Сливаем частые кадры: в очереди tk всегда только последний кадр.
+        if self._pending_image is not None:
+            self._pending_image.close()
+        self._pending_image = image.copy()
+        self._pending_changing = changing
+        if not self._preview_scheduled:
+            self._preview_scheduled = True
+            self.app.root.after(0, self._flush_preview)
 
-    def _update_preview_safe(self, image: Image.Image, changing: bool) -> None:
-        if self.preview.win.winfo_exists():
-            self.preview.update_frame(image, changing)
+    def _flush_preview(self) -> None:
+        self._preview_scheduled = False
+        image = self._pending_image
+        changing = self._pending_changing
+        self._pending_image = None
+        if image is None:
+            return
+        try:
+            if self.preview.win.winfo_exists():
+                self.preview.update_frame(image, changing)
+        finally:
+            image.close()
 
     def start(self) -> None:
         self.monitor.start()
@@ -96,6 +116,9 @@ class MonitorSlot:
 
     def destroy(self) -> None:
         self.monitor.stop()
+        if self._pending_image is not None:
+            self._pending_image.close()
+            self._pending_image = None
         self.preview.close()
 
 

@@ -35,13 +35,19 @@ def images_differ(
     """True, если изображения заметно отличаются."""
     if a.size != b.size:
         return True
-    # Уменьшаем для быстрого сравнения — достаточно для детекции изменений
+    # Уменьшаем для быстрого сравнения — промежуточные кадры сразу освобождаем.
     small_a = a.convert("RGB").resize((64, 64), Image.Resampling.BILINEAR)
     small_b = b.convert("RGB").resize((64, 64), Image.Resampling.BILINEAR)
-    diff = ImageChops.difference(small_a, small_b)
-    stat = ImageStat.Stat(diff)
-    mean_diff = sum(stat.mean) / len(stat.mean)
-    return mean_diff >= threshold
+    try:
+        diff = ImageChops.difference(small_a, small_b)
+        stat = ImageStat.Stat(diff)
+        mean_diff = sum(stat.mean) / len(stat.mean)
+        return mean_diff >= threshold
+    finally:
+        small_a.close()
+        small_b.close()
+        if "diff" in locals():
+            diff.close()
 
 
 class ChangeTracker:
@@ -158,19 +164,23 @@ class RegionMonitor:
         return Image.frombytes("RGB", shot.size, shot.bgra, "raw", "BGRX")
 
     def _loop(self) -> None:
+        errors = 0
         with mss.mss() as sct:
             while not self._stop.is_set():
+                frame: Image.Image | None = None
                 try:
                     frame = self._capture(sct)
+                    now = time.monotonic()
+                    if self._tracker.process_frame(frame, now):
+                        self.on_alarm()
+                    if self.on_frame:
+                        self.on_frame(frame, self._tracker.is_changing)
+                    errors = 0
                 except Exception:
-                    time.sleep(self.poll_interval)
-                    continue
-
-                now = time.monotonic()
-                if self._tracker.process_frame(frame, now):
-                    self.on_alarm()
-
-                if self.on_frame:
-                    self.on_frame(frame, self._tracker.is_changing)
-
+                    errors += 1
+                    # Пауза при сбоях захвата, но поток не завершается.
+                    time.sleep(min(self.poll_interval * errors, 5.0))
+                finally:
+                    if frame is not None:
+                        frame.close()
                 time.sleep(self.poll_interval)
