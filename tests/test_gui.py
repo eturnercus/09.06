@@ -49,7 +49,7 @@ class TestWatchAlertGui(unittest.TestCase):
         self.assertIsInstance(self.app.region_list, tk.Listbox)
 
     def test_add_region_updates_list(self) -> None:
-        from watchalert.monitor import Region
+        from watchalert.region import Region
 
         before = self.app.region_list.size()
         self.app._on_region_selected(Region(10, 10, 100, 80))

@@ -6,7 +6,13 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ARTIFACTS="$ROOT/artifacts"
 BUILD="$ROOT/build"
 APPDIR="$BUILD/WatchAlert.AppDir"
-PYINSTALLER="$HOME/.local/bin/pyinstaller"
+if command -v pyinstaller >/dev/null 2>&1; then
+  PYINSTALLER="pyinstaller"
+elif [[ -x "$HOME/.local/bin/pyinstaller" ]]; then
+  PYINSTALLER="$HOME/.local/bin/pyinstaller"
+else
+  PYINSTALLER="python3 -m PyInstaller"
+fi
 APPIMAGETOOL="$BUILD/appimagetool-x86_64.AppImage"
 
 cd "$ROOT"
@@ -17,7 +23,7 @@ export WATCHALERT_ROOT="$ROOT"
 
 echo "==> PyInstaller one-file (Linux)"
 rm -rf "$BUILD/pyinstaller-dist" "$BUILD/pyinstaller-work"
-"$PYINSTALLER" "$BUILD/watchalert.spec" \
+$PYINSTALLER "$BUILD/watchalert.spec" \
   --distpath "$BUILD/pyinstaller-dist" \
   --workpath "$BUILD/pyinstaller-work" \
   --noconfirm

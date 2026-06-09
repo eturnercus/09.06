@@ -34,7 +34,9 @@ sudo apt install python3-tk libsdl2-dev
 | `WatchAlert-x86_64.AppImage` | Linux |
 | `WatchAlert-linux-x86_64` | Linux |
 
-Пересборка: `./build/build_all.sh`
+Пересборка:
+- **Linux:** `./build/build_all.sh`
+- **Windows:** `build.bat` (двойной клик или из cmd)
 
 ## Установка и запуск из исходников
 

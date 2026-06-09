@@ -5,6 +5,9 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: write
+
 jobs:
   build-linux:
     runs-on: ubuntu-latest
@@ -19,7 +22,9 @@ jobs:
           sudo apt-get install -y python3-tk libsdl2-dev fuse libfuse2 wget
           pip install -r requirements.txt pyinstaller
       - name: Build Linux + AppImage
-        run: ./build/build.sh
+        run: |
+          mkdir -p artifacts
+          ./build/build.sh
       - name: Upload Linux artifacts
         uses: softprops/action-gh-release@v2
         with:
@@ -37,16 +42,12 @@ jobs:
       - name: Install deps
         run: pip install -r requirements.txt pyinstaller
       - name: Build Windows exe
-        shell: bash
-        env:
-          WATCHALERT_ROOT: ${{ github.workspace }}
         run: |
-          export WATCHALERT_ROOT="$GITHUB_WORKSPACE"
-          pyinstaller build/watchalert.spec \
-            --distpath build/pyinstaller-dist \
-            --workpath build/pyinstaller-work \
-            --noconfirm
-          cp build/pyinstaller-dist/WatchAlert.exe artifacts/WatchAlert-windows-x86_64.exe
+          mkdir -p artifacts
+          set WATCHALERT_ROOT=%CD%
+          python -m PyInstaller build/watchalert.spec --distpath build/pyinstaller-dist --workpath build/pyinstaller-work --noconfirm
+          copy build\pyinstaller-dist\WatchAlert.exe artifacts\WatchAlert-windows-x86_64.exe
+        shell: cmd
       - name: Upload Windows artifact
         uses: softprops/action-gh-release@v2
         with:

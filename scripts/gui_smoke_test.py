@@ -8,7 +8,7 @@ from pathlib import Path
 from PIL import ImageGrab
 
 from watchalert.app import WatchAlertApp
-from watchalert.monitor import Region
+from watchalert.region import Region
 
 
 def main() -> int:

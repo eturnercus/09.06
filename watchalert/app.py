@@ -12,7 +12,8 @@ from typing import Any
 from PIL import Image, ImageTk
 
 from watchalert.audio import SoundPlayer
-from watchalert.monitor import Region, RegionMonitor
+from watchalert.monitor import RegionMonitor
+from watchalert.region import Region
 from watchalert.selector import RegionSelector
 
 CONFIG_DIR = Path.home() / ".watchalert"

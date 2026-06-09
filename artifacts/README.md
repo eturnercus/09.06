@@ -26,6 +26,12 @@ chmod +x WatchAlert-linux-x86_64
 
 ## Пересборка
 
+**Linux:**
 ```bash
 ./build/build_all.sh
+```
+
+**Windows:**
+```bat
+build.bat
 ```
