@@ -2,25 +2,33 @@
 
 from __future__ import annotations
 
-from typing import Any
-
+import mss
 from PIL import Image
 
 from watchalert.region import Region
 
 
+def list_monitors() -> list[dict[str, int]]:
+    """Физические мониторы (без виртуального monitors[0])."""
+    with mss.mss() as sct:
+        return [dict(m) for m in sct.monitors[1:]]
+
+
 def virtual_monitor() -> dict[str, int]:
     """Виртуальный экран (все мониторы) в координатах mss."""
-    import mss
-
     with mss.mss() as sct:
         return dict(sct.monitors[0])
 
 
-def grab_virtual_screen() -> tuple[Image.Image, dict[str, int]]:
-    """Снимок всего экрана и границы виртуального монитора."""
-    import mss
+def grab_monitor(monitor: dict[str, int]) -> Image.Image:
+    """Снимок одного физического монитора."""
+    with mss.mss() as sct:
+        shot = sct.grab(monitor)
+        return Image.frombytes("RGB", shot.size, shot.bgra, "raw", "BGRX")
 
+
+def grab_virtual_screen() -> tuple[Image.Image, dict[str, int]]:
+    """Снимок всего виртуального экрана (все мониторы одним изображением)."""
     with mss.mss() as sct:
         mon = sct.monitors[0]
         shot = sct.grab(mon)
@@ -31,8 +39,6 @@ def grab_virtual_screen() -> tuple[Image.Image, dict[str, int]]:
 def grab_region(region: Region) -> Image.Image:
     """Захват прямоугольной области экрана."""
     try:
-        import mss
-
         with mss.mss() as sct:
             shot = sct.grab(region.to_mss_dict())
             return Image.frombytes("RGB", shot.size, shot.bgra, "raw", "BGRX")
