@@ -16,11 +16,13 @@
 - Python 3.10+
 - Linux или Windows
 
-На Linux для работы звука может понадобиться:
+На Linux:
 
 ```bash
-sudo apt install python3-tk libsdl2-dev
+sudo apt install python3-tk libsdl2-dev scrot
 ```
+
+**Захват экрана на Linux:** если превью чёрное — приложение автоматически пробует несколько способов (`mss` xlib, ImageGrab, `scrot`, `grim` на Wayland). На **Wayland** (Ubuntu по умолчанию) установите `grim` или войдите в сессию **Xorg** при загрузке. Переменная `WATCHALERT_CAPTURE=imagegrab` задаёт способ вручную.
 
 На Windows обычно достаточно установить Python с [python.org](https://www.python.org/) (включите «tcl/tk» при установке).
 

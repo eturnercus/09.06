@@ -98,6 +98,7 @@ class RegionMonitor:
         delay_seconds: float,
         on_alarm: Callable[[], None],
         on_frame: Callable[[Image.Image, bool], None] | None = None,
+        on_error: Callable[[str], None] | None = None,
         poll_interval: float = 0.4,
         sensitivity: float = 8.0,
     ) -> None:
@@ -105,6 +106,7 @@ class RegionMonitor:
         self.delay_seconds = delay_seconds
         self.on_alarm = on_alarm
         self.on_frame = on_frame
+        self.on_error = on_error
         self.poll_interval = poll_interval
         self.sensitivity = sensitivity
         self._tracker = ChangeTracker(delay_seconds, sensitivity)
@@ -159,8 +161,10 @@ class RegionMonitor:
                 if self.on_frame:
                     self.on_frame(frame, self._tracker.is_changing)
                 errors = 0
-            except Exception:
+            except Exception as exc:
                 errors += 1
+                if self.on_error:
+                    self.on_error(str(exc))
                 time.sleep(min(self.poll_interval * errors, 5.0))
             finally:
                 if frame is not None:

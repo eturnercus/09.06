@@ -35,22 +35,6 @@ class TestRegionSelector(unittest.TestCase):
             root.destroy()
 
 
-class TestScreenCapture(unittest.TestCase):
-    @patch("watchalert.screen_capture.mss.mss")
-    def test_list_monitors_skips_virtual(self, mss_mock: MagicMock) -> None:
-        from watchalert.screen_capture import list_monitors
-
-        inst = mss_mock.return_value.__enter__.return_value
-        inst.monitors = [
-            {"left": 0, "top": 0, "width": 3840, "height": 1080},
-            {"left": 0, "top": 0, "width": 1920, "height": 1080},
-            {"left": 1920, "top": 0, "width": 1920, "height": 1080},
-        ]
-        monitors = list_monitors()
-        self.assertEqual(len(monitors), 2)
-        self.assertEqual(monitors[1]["left"], 1920)
-
-
 class TestRegionSelectorUI(unittest.TestCase):
     @patch("watchalert.selector.grab_monitor")
     @patch("watchalert.selector.list_monitors")

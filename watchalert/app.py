@@ -55,6 +55,13 @@ class PreviewWindow:
             self.status_var.set("Стабильно")
             self.win.configure(bg="")
 
+    def show_error(self, message: str) -> None:
+        self._photo = None
+        self.label.configure(image="")
+        short = message if len(message) < 120 else message[:117] + "…"
+        self.status_var.set(f"Ошибка захвата: {short}")
+        self.win.configure(bg="#3d1f1f")
+
     def close(self) -> None:
         if self.win.winfo_exists():
             self.win.destroy()
@@ -77,6 +84,7 @@ class MonitorSlot:
             delay_seconds=app.delay_var.get(),
             on_alarm=app._play_alarm,
             on_frame=self._on_frame,
+            on_error=self._on_error,
             sensitivity=app.sensitivity_var.get(),
         )
         self.list_item_id: str | None = None
@@ -85,6 +93,13 @@ class MonitorSlot:
         self._preview_scheduled = False
         if running:
             self.start()
+
+    def _on_error(self, message: str) -> None:
+        self.app.root.after(0, lambda: self._show_error_safe(message))
+
+    def _show_error_safe(self, message: str) -> None:
+        if self.preview.win.winfo_exists():
+            self.preview.show_error(message)
 
     def _on_frame(self, image: Image.Image, changing: bool) -> None:
         # Сливаем частые кадры: в очереди tk всегда только последний кадр.
