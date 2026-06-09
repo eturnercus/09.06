@@ -49,7 +49,7 @@ class TestGrabRegionFallback(unittest.TestCase):
         finally:
             good.close()
 
-    @patch("watchalert.screen_capture._all_backends", return_value=["mss_default"])
+    @patch("watchalert.screen_capture._all_backends", return_value=["mss_xlib"])
     @patch("watchalert.screen_capture._capture_with_backend")
     def test_all_black_raises(self, capture_mock: MagicMock, _backends: MagicMock) -> None:
         black = Image.new("RGB", (5, 5), (0, 0, 0))
