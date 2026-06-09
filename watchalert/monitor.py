@@ -44,6 +44,55 @@ def images_differ(
     return mean_diff >= threshold
 
 
+class ChangeTracker:
+    """Состояние детектора: один сигнал на каждое новое устойчивое изменение."""
+
+    def __init__(self, delay_seconds: float, sensitivity: float = 8.0) -> None:
+        self.delay_seconds = delay_seconds
+        self.sensitivity = sensitivity
+        self._reference: Image.Image | None = None
+        self._change_since: float | None = None
+
+    def process_frame(self, frame: Image.Image, now: float) -> bool:
+        """
+        Обрабатывает кадр. Возвращает True, если нужно воспроизвести сигнал.
+
+        - Первый кадр запоминается как эталон, сигнала нет.
+        - При отличии от эталона запускается таймер.
+        - Если отличие исчезает до истечения задержки — таймер сбрасывается.
+        - После сигнала эталон обновляется: без нового изменения повтора нет.
+        - Новое изменение относительно обновлённого эталона снова даёт сигнал.
+        """
+        if self._reference is None:
+            self._reference = frame.copy()
+            self._change_since = None
+            return False
+
+        changed = images_differ(
+            self._reference, frame, threshold=self.sensitivity
+        )
+
+        if changed:
+            if self._change_since is None:
+                self._change_since = now
+            elif now - self._change_since >= self.delay_seconds:
+                self._reference = frame.copy()
+                self._change_since = None
+                return True
+        else:
+            self._change_since = None
+
+        return False
+
+    @property
+    def is_changing(self) -> bool:
+        return self._change_since is not None
+
+    def reset_baseline(self) -> None:
+        self._reference = None
+        self._change_since = None
+
+
 class RegionMonitor:
     """Фоновый монитор одной области экрана."""
 
@@ -62,12 +111,11 @@ class RegionMonitor:
         self.on_frame = on_frame
         self.poll_interval = poll_interval
         self.sensitivity = sensitivity
+        self._tracker = ChangeTracker(delay_seconds, sensitivity)
 
         self._thread: threading.Thread | None = None
         self._stop = threading.Event()
         self._running = False
-        self._change_since: float | None = None
-        self._reference: Image.Image | None = None
 
     @property
     def is_running(self) -> bool:
@@ -77,8 +125,7 @@ class RegionMonitor:
         if self._running:
             return
         self._stop.clear()
-        self._change_since = None
-        self._reference = None
+        self._tracker.reset_baseline()
         self._thread = threading.Thread(target=self._loop, daemon=True)
         self._thread.start()
         self._running = True
@@ -89,17 +136,17 @@ class RegionMonitor:
             self._thread.join(timeout=2)
         self._thread = None
         self._running = False
-        self._change_since = None
 
     def update_delay(self, delay_seconds: float) -> None:
         self.delay_seconds = delay_seconds
+        self._tracker.delay_seconds = delay_seconds
 
     def update_sensitivity(self, sensitivity: float) -> None:
         self.sensitivity = sensitivity
+        self._tracker.sensitivity = sensitivity
 
     def reset_baseline(self) -> None:
-        self._reference = None
-        self._change_since = None
+        self._tracker.reset_baseline()
 
     def _capture(self, sct: mss.mss) -> Image.Image:
         shot = sct.grab(self.region.to_mss_dict())
@@ -114,29 +161,11 @@ class RegionMonitor:
                     time.sleep(self.poll_interval)
                     continue
 
-                if self._reference is None:
-                    self._reference = frame.copy()
-                    if self.on_frame:
-                        self.on_frame(frame, False)
-                    time.sleep(self.poll_interval)
-                    continue
-
-                changed = images_differ(
-                    self._reference, frame, threshold=self.sensitivity
-                )
                 now = time.monotonic()
-
-                if changed:
-                    if self._change_since is None:
-                        self._change_since = now
-                    elif now - self._change_since >= self.delay_seconds:
-                        self.on_alarm()
-                        self._reference = frame.copy()
-                        self._change_since = None
-                else:
-                    self._change_since = None
+                if self._tracker.process_frame(frame, now):
+                    self.on_alarm()
 
                 if self.on_frame:
-                    self.on_frame(frame, self._change_since is not None)
+                    self.on_frame(frame, self._tracker.is_changing)
 
                 time.sleep(self.poll_interval)
