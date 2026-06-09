@@ -68,6 +68,8 @@ class ChangeTracker:
             self._change_since = None
             return False
 
+        # Старый кадр заменяется — на диск ничего не пишется, память освобождается GC.
+
         changed = images_differ(
             self._reference, frame, threshold=self.sensitivity
         )
@@ -76,6 +78,7 @@ class ChangeTracker:
             if self._change_since is None:
                 self._change_since = now
             elif now - self._change_since >= self.delay_seconds:
+                self._reference.close()
                 self._reference = frame.copy()
                 self._change_since = None
                 return True
@@ -89,6 +92,8 @@ class ChangeTracker:
         return self._change_since is not None
 
     def reset_baseline(self) -> None:
+        if self._reference is not None:
+            self._reference.close()
         self._reference = None
         self._change_since = None
 
