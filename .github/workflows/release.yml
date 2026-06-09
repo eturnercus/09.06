@@ -1,0 +1,53 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk libsdl2-dev fuse libfuse2 wget
+          pip install -r requirements.txt pyinstaller
+      - name: Build Linux + AppImage
+        run: ./build/build.sh
+      - name: Upload Linux artifacts
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/WatchAlert-linux-x86_64
+            artifacts/WatchAlert-x86_64.AppImage
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: pip install -r requirements.txt pyinstaller
+      - name: Build Windows exe
+        shell: bash
+        env:
+          WATCHALERT_ROOT: ${{ github.workspace }}
+        run: |
+          export WATCHALERT_ROOT="$GITHUB_WORKSPACE"
+          pyinstaller build/watchalert.spec \
+            --distpath build/pyinstaller-dist \
+            --workpath build/pyinstaller-work \
+            --noconfirm
+          cp build/pyinstaller-dist/WatchAlert.exe artifacts/WatchAlert-windows-x86_64.exe
+      - name: Upload Windows artifact
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/WatchAlert-windows-x86_64.exe
