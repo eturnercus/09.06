@@ -4,4 +4,11 @@ __pycache__/
 .venv/
 venv/
 .env
-artifacts/
+artifacts/*
+!artifacts/README.md
+build/pyinstaller-*
+build/WatchAlert.AppDir
+build/win-python/
+build/windows-py/
+build/python-*
+build/appimagetool-*
