@@ -7,7 +7,7 @@ import sys
 import tkinter as tk
 from tkinter import messagebox
 
-from watchalert.screen_capture import is_running_as_root
+from watchalert.capture_env import is_running_as_root
 
 
 def check_runtime_or_exit() -> None:

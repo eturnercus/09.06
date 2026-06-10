@@ -4,8 +4,8 @@ import os
 import unittest
 from unittest.mock import patch
 
-from watchalert.screen_capture import (
-    _clean_subprocess_env,
+from watchalert.capture_env import (
+    clean_subprocess_env,
     is_appimage,
     is_running_as_root,
 )
@@ -18,7 +18,7 @@ class TestRuntime(unittest.TestCase):
             {"LD_LIBRARY_PATH": "/tmp/app", "APPIMAGE": "/a.AppImage", "HOME": "/home/u"},
             clear=False,
         ):
-            env = _clean_subprocess_env()
+            env = clean_subprocess_env()
         self.assertNotIn("LD_LIBRARY_PATH", env)
         self.assertNotIn("APPIMAGE", env)
         self.assertEqual(env["HOME"], "/home/u")

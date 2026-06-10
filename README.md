@@ -22,7 +22,19 @@
 sudo apt install python3-tk libsdl2-dev scrot
 ```
 
-**Захват экрана на Linux:** приложение пробует `mss` xlib, `grim`, `gnome-screenshot`, `scrot`. На Wayland: `sudo apt install grim`. **Не запускайте через sudo** — от root нет доступа к экрану и ломается `gnome-screenshot` (ошибка libgobject). Запуск: `./WatchAlert.AppImage` от обычного пользователя.
+**Захват экрана на Linux** — приложение **само подбирает** рабочий способ при старте:
+
+| Среда | Способы (по порядку) |
+|-------|----------------------|
+| Wayland (GNOME/KDE) | XDG Portal, grim, spectacle, gnome-screenshot, Pillow XCB |
+| X11 | Pillow XCB, mss xlib, scrot, maim, ImageMagick, ffmpeg |
+
+Кнопка **«Проверить захват»** в настройках показывает, что работает у вас.
+
+**Не запускайте через sudo.** Запуск: `./WatchAlert.AppImage`
+
+Если не работает на Wayland: `sudo apt install grim scrot` или войдите в сессию **Ubuntu on Xorg**.
+Принудительно: `WATCHALERT_CAPTURE=pillow_x11 ./WatchAlert.AppImage`
 
 На Windows обычно достаточно установить Python с [python.org](https://www.python.org/) (включите «tcl/tk» при установке).
 

@@ -9,7 +9,7 @@ from typing import Callable
 from PIL import Image, ImageChops, ImageStat
 
 from watchalert.region import Region
-from watchalert.screen_capture import grab_region
+from watchalert.screen_capture import grab_region, recommended_poll_interval
 
 
 def images_differ(
@@ -124,6 +124,7 @@ class RegionMonitor:
             return
         self._stop.clear()
         self._tracker.reset_baseline()
+        self.poll_interval = recommended_poll_interval()
         self._thread = threading.Thread(target=self._loop, daemon=True)
         self._thread.start()
         self._running = True

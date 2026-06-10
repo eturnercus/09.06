@@ -23,16 +23,20 @@ def _find_root() -> Path:
 
 ROOT = _find_root()
 
-hiddenimports = collect_submodules("mss") + [
+hiddenimports = collect_submodules("mss") + collect_submodules("jeepney") + [
     "PIL._tkinter_finder",
     "pygame",
     "pygame.mixer",
     "watchalert",
     "watchalert.app",
     "watchalert.audio",
+    "watchalert.capture_backends",
+    "watchalert.capture_env",
+    "watchalert.capture_portal",
     "watchalert.main",
     "watchalert.monitor",
     "watchalert.region",
+    "watchalert.runtime_check",
     "watchalert.screen_capture",
     "watchalert.selector",
 ]
