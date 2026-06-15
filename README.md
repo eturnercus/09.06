@@ -16,11 +16,25 @@
 - Python 3.10+
 - Linux или Windows
 
-На Linux для работы звука может понадобиться:
+На Linux:
 
 ```bash
-sudo apt install python3-tk libsdl2-dev
+sudo apt install python3-tk libsdl2-dev scrot
 ```
+
+**Захват экрана на Linux** — приложение **само подбирает** рабочий способ при старте:
+
+| Среда | Способы (по порядку) |
+|-------|----------------------|
+| Wayland (GNOME/KDE) | XDG Portal, grim, spectacle, gnome-screenshot, Pillow XCB |
+| X11 | Pillow XCB, mss xlib, scrot, maim, ImageMagick, ffmpeg |
+
+Кнопка **«Проверить захват»** в настройках показывает, что работает у вас.
+
+**Не запускайте через sudo.** Запуск: `./WatchAlert.AppImage`
+
+Если не работает на Wayland: `sudo apt install grim scrot` или войдите в сессию **Ubuntu on Xorg**.
+Принудительно: `WATCHALERT_CAPTURE=pillow_x11 ./WatchAlert.AppImage`
 
 На Windows обычно достаточно установить Python с [python.org](https://www.python.org/) (включите «tcl/tk» при установке).
 
@@ -34,7 +48,9 @@ sudo apt install python3-tk libsdl2-dev
 | `WatchAlert-x86_64.AppImage` | Linux |
 | `WatchAlert-linux-x86_64` | Linux |
 
-Пересборка: `./build/build_all.sh`
+Пересборка:
+- **Linux:** `./build/build_all.sh`
+- **Windows:** `build.bat` (двойной клик или из cmd)
 
 ## Установка и запуск из исходников
 
@@ -47,7 +63,7 @@ python -m watchalert.main
 
 1. Укажите **задержку** — сколько секунд изменение должно сохраняться до сигнала.
 2. Выберите **звуковой файл** и нажмите «Тест» для проверки.
-3. Нажмите **«Добавить область»** — появится полупрозрачный экран. Выделите мышью прямоугольник и отпустите кнопку.
+3. Нажмите **«Добавить область»** — на **каждом мониторе** появится замороженный снимок этого монитора. Выделите мышью прямоугольник на том экране, где нужно следить.
 4. Повторите для других областей при необходимости.
 5. Нажмите **«▶ Старт»** — мониторинг начнётся, для каждой области откроется окно превью.
 6. Если содержимое области изменится и останется изменённым заданное время — прозвучит сигнал.
@@ -69,11 +85,4 @@ python -m watchalert.main
 
 ## Релизы
 
-Готовые сборки десктопного приложения — на странице [Releases](https://github.com/eturnercus/09.06/releases).
-
-## Расширение для браузера
-
-**WatchAlert Tab** — тот же принцип, но зоны на **вкладках** браузера (мониторинг в фоне, пока вы в других вкладках).
-
-Установка: папка [`extension/`](extension/) → `chrome://extensions/` → «Загрузить распакованное».  
-Подробнее: [extension/README.md](extension/README.md).
+Готовые сборки — на странице [Releases](https://github.com/eturnercus/09.06/releases).

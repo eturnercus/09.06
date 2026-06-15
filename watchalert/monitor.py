@@ -4,27 +4,12 @@ from __future__ import annotations
 
 import threading
 import time
-from dataclasses import dataclass
 from typing import Callable
 
-import mss
 from PIL import Image, ImageChops, ImageStat
 
-
-@dataclass
-class Region:
-    x: int
-    y: int
-    width: int
-    height: int
-
-    def to_mss_dict(self) -> dict[str, int]:
-        return {
-            "left": self.x,
-            "top": self.y,
-            "width": self.width,
-            "height": self.height,
-        }
+from watchalert.region import Region
+from watchalert.screen_capture import grab_region, recommended_poll_interval
 
 
 def images_differ(
@@ -113,6 +98,7 @@ class RegionMonitor:
         delay_seconds: float,
         on_alarm: Callable[[], None],
         on_frame: Callable[[Image.Image, bool], None] | None = None,
+        on_error: Callable[[str], None] | None = None,
         poll_interval: float = 0.4,
         sensitivity: float = 8.0,
     ) -> None:
@@ -120,6 +106,7 @@ class RegionMonitor:
         self.delay_seconds = delay_seconds
         self.on_alarm = on_alarm
         self.on_frame = on_frame
+        self.on_error = on_error
         self.poll_interval = poll_interval
         self.sensitivity = sensitivity
         self._tracker = ChangeTracker(delay_seconds, sensitivity)
@@ -137,6 +124,7 @@ class RegionMonitor:
             return
         self._stop.clear()
         self._tracker.reset_baseline()
+        self.poll_interval = recommended_poll_interval()
         self._thread = threading.Thread(target=self._loop, daemon=True)
         self._thread.start()
         self._running = True
@@ -159,28 +147,27 @@ class RegionMonitor:
     def reset_baseline(self) -> None:
         self._tracker.reset_baseline()
 
-    def _capture(self, sct: mss.mss) -> Image.Image:
-        shot = sct.grab(self.region.to_mss_dict())
-        return Image.frombytes("RGB", shot.size, shot.bgra, "raw", "BGRX")
+    def _capture(self) -> Image.Image:
+        return grab_region(self.region)
 
     def _loop(self) -> None:
         errors = 0
-        with mss.mss() as sct:
-            while not self._stop.is_set():
-                frame: Image.Image | None = None
-                try:
-                    frame = self._capture(sct)
-                    now = time.monotonic()
-                    if self._tracker.process_frame(frame, now):
-                        self.on_alarm()
-                    if self.on_frame:
-                        self.on_frame(frame, self._tracker.is_changing)
-                    errors = 0
-                except Exception:
-                    errors += 1
-                    # Пауза при сбоях захвата, но поток не завершается.
-                    time.sleep(min(self.poll_interval * errors, 5.0))
-                finally:
-                    if frame is not None:
-                        frame.close()
-                time.sleep(self.poll_interval)
+        while not self._stop.is_set():
+            frame: Image.Image | None = None
+            try:
+                frame = self._capture()
+                now = time.monotonic()
+                if self._tracker.process_frame(frame, now):
+                    self.on_alarm()
+                if self.on_frame:
+                    self.on_frame(frame, self._tracker.is_changing)
+                errors = 0
+            except Exception as exc:
+                errors += 1
+                if self.on_error:
+                    self.on_error(str(exc))
+                time.sleep(min(self.poll_interval * errors, 5.0))
+            finally:
+                if frame is not None:
+                    frame.close()
+            time.sleep(self.poll_interval)

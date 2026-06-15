@@ -12,7 +12,17 @@ from typing import Any
 from PIL import Image, ImageTk
 
 from watchalert.audio import SoundPlayer
-from watchalert.monitor import Region, RegionMonitor
+from watchalert.monitor import RegionMonitor
+from watchalert.region import Region
+from watchalert.capture_env import session_type
+from watchalert.screen_capture import (
+    active_backend_name,
+    capture_help_text,
+    grab_region,
+    probe_async,
+    probe_backends,
+    reset_capture_backend,
+)
 from watchalert.selector import RegionSelector
 
 CONFIG_DIR = Path.home() / ".watchalert"
@@ -54,6 +64,13 @@ class PreviewWindow:
             self.status_var.set("Стабильно")
             self.win.configure(bg="")
 
+    def show_error(self, message: str) -> None:
+        self._photo = None
+        self.label.configure(image="")
+        short = message if len(message) < 120 else message[:117] + "…"
+        self.status_var.set(f"Ошибка захвата: {short}")
+        self.win.configure(bg="#3d1f1f")
+
     def close(self) -> None:
         if self.win.winfo_exists():
             self.win.destroy()
@@ -76,6 +93,7 @@ class MonitorSlot:
             delay_seconds=app.delay_var.get(),
             on_alarm=app._play_alarm,
             on_frame=self._on_frame,
+            on_error=self._on_error,
             sensitivity=app.sensitivity_var.get(),
         )
         self.list_item_id: str | None = None
@@ -84,6 +102,13 @@ class MonitorSlot:
         self._preview_scheduled = False
         if running:
             self.start()
+
+    def _on_error(self, message: str) -> None:
+        self.app.root.after(0, lambda: self._show_error_safe(message))
+
+    def _show_error_safe(self, message: str) -> None:
+        if self.preview.win.winfo_exists():
+            self.preview.show_error(message)
 
     def _on_frame(self, image: Image.Image, changing: bool) -> None:
         # Сливаем частые кадры: в очереди tk всегда только последний кадр.
@@ -138,9 +163,18 @@ class WatchAlertApp:
         self.sensitivity_var = tk.DoubleVar(value=8.0)
         self.sound_path_var = tk.StringVar(value="")
 
+        self.capture_status_var = tk.StringVar(value="Захват экрана: проверка…")
+
         self._build_ui()
         self._load_config()
+        self._refresh_capture_status()
+        self.root.after(300, self._start_capture_probe)
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
+
+    def _start_capture_probe(self) -> None:
+        probe_async(
+            lambda _w, _e: self.root.after(0, self._refresh_capture_status)
+        )
 
     def _build_ui(self) -> None:
         main = ttk.Frame(self.root, padding=12)
@@ -195,6 +229,15 @@ class WatchAlertApp:
         )
         ttk.Button(row3, text="Тест", command=self._test_sound).pack(
             side=tk.LEFT, padx=(4, 0)
+        )
+
+        row4 = ttk.Frame(settings)
+        row4.pack(fill=tk.X, pady=(6, 0))
+        ttk.Label(
+            row4, textvariable=self.capture_status_var, wraplength=540
+        ).pack(side=tk.LEFT, fill=tk.X, expand=True)
+        ttk.Button(row4, text="Проверить захват", command=self._test_capture).pack(
+            side=tk.RIGHT
         )
 
         regions_frame = ttk.LabelFrame(main, text="Области мониторинга", padding=10)
@@ -254,6 +297,54 @@ class WatchAlertApp:
     def _test_sound(self) -> None:
         self.sound_player.set_sound(self.sound_path_var.get() or None)
         self._play_alarm()
+
+    def _refresh_capture_status(self) -> None:
+        backend = active_backend_name()
+        session = session_type() or "?"
+        if backend:
+            self.capture_status_var.set(
+                f"Захват экрана: {backend} ({session}) — OK"
+            )
+        else:
+            self.capture_status_var.set(
+                f"Захват экрана: не найден ({session}). Нажмите «Проверить захват»."
+            )
+
+    def _test_capture(self) -> None:
+        reset_capture_backend()
+        working, errors = probe_backends()
+        self._refresh_capture_status()
+        if working:
+            mons = __import__(
+                "watchalert.screen_capture", fromlist=["list_monitors"]
+            ).list_monitors()
+            m = mons[0]
+            region = Region(
+                m["left"] + 10,
+                m["top"] + 10,
+                min(120, m["width"] // 3),
+                min(90, m["height"] // 3),
+            )
+            try:
+                img = grab_region(region)
+                img.close()
+            except Exception as exc:
+                messagebox.showerror("WatchAlert", f"Тест не прошёл: {exc}")
+                return
+            messagebox.showinfo(
+                "WatchAlert",
+                f"Захват работает.\n\nСпособ: {working[0]}\n"
+                f"Доступно: {', '.join(working)}\n\n"
+                f"Сессия: {session_type() or 'неизвестна'}",
+            )
+        else:
+            messagebox.showerror(
+                "WatchAlert",
+                "Не удалось захватить экран ни одним способом.\n\n"
+                + "\n".join(errors[:6])
+                + "\n\n"
+                + capture_help_text(),
+            )
 
     def _play_alarm(self) -> None:
         self.sound_player.set_sound(self.sound_path_var.get() or None)
