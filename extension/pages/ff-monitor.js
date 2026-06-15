@@ -48,7 +48,10 @@ async function playAlarm(tabId, label) {
 }
 
 async function captureFrame(tabId) {
-  const dataUrl = await browser.tabs.captureTab(tabId, { format: "png" });
+  const res = await browser.runtime.sendMessage({ type: "FF_CAPTURE_TAB", tabId });
+  if (res?.error) throw new Error(res.error);
+  if (!res?.dataUrl) throw new Error("captureTab: empty response");
+  const dataUrl = res.dataUrl;
   const res = await fetch(dataUrl);
   const blob = await res.blob();
   const bitmap = await createImageBitmap(blob);

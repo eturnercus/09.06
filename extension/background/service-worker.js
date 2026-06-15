@@ -15,7 +15,9 @@ import {
   buildPinnedWindow,
   refreshPinnedFromMonitors,
   resolvePinnedSession,
-} from "../shared/window-pin.js"; = "offscreen/offscreen.html";
+} from "../shared/window-pin.js";
+
+const OFFSCREEN_URL = "offscreen/offscreen.html";
 let offscreenReady = false;
 
 function supportsOffscreen() {
@@ -334,6 +336,11 @@ browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         browser.action.setBadgeBackgroundColor({ color: "#e53935" });
         setTimeout(() => browser.action.setBadgeText({ text: "" }), 3000);
         sendResponse({ ok: true });
+        break;
+      }
+      case "FF_CAPTURE_TAB": {
+        const dataUrl = await browser.tabs.captureTab(msg.tabId, { format: "png" });
+        sendResponse({ dataUrl });
         break;
       }
       case "FF_MONITOR_SYNC":
