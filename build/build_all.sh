@@ -8,6 +8,7 @@ if command -v wine >/dev/null 2>&1 || command -v wine64 >/dev/null 2>&1; then
 else
   echo "Wine не найден — Windows .exe не собран"
 fi
+"$ROOT/build/build-extension.sh"
 echo ""
 echo "Артефакты:"
 ls -lh "$ROOT/artifacts"/WatchAlert*

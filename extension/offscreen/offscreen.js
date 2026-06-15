@@ -1,4 +1,5 @@
 import { cropImageData, ChangeTracker } from "../shared/diff.js";
+import { browser } from "../shared/browser.js";
 
 const alarm = document.getElementById("alarm");
 
@@ -23,7 +24,7 @@ function stopAll() {
 }
 
 async function getTabStream(tabId) {
-  const streamId = await chrome.tabCapture.getMediaStreamId({ targetTabId: tabId });
+  const streamId = await browser.tabCapture.getMediaStreamId({ targetTabId: tabId });
   return navigator.mediaDevices.getUserMedia({
     audio: false,
     video: {
@@ -100,7 +101,7 @@ function tickSession(tabId) {
     const crop = cropImageData(frame.data, vw, vh, zone);
     if (tracker.process(crop.data, crop.w, crop.h, now)) {
       playAlarm();
-      chrome.runtime.sendMessage({
+      browser.runtime.sendMessage({
         type: "ALARM",
         tabId,
         zoneId: zone.id,
@@ -152,7 +153,7 @@ async function syncState() {
   }
 }
 
-chrome.runtime.onMessage.addListener((msg) => {
+browser.runtime.onMessage.addListener((msg) => {
   if (msg.type === "OFFSCREEN_SYNC") {
     settings = msg.settings;
     monitors = msg.monitors || [];

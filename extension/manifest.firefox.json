@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "WatchAlert Tab",
+  "version": "1.0.0",
+  "description": "Мониторинг зон на вкладках браузера со звуковым сигналом при устойчивых изменениях",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "watchalert-tab@eturnercus.github",
+      "strict_min_version": "109.0"
+    }
+  },
+  "permissions": ["tabs", "storage", "scripting"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background/service-worker.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "WatchAlert Tab"
+  },
+  "icons": {
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
