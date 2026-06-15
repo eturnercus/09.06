@@ -1,4 +1,5 @@
 (function () {
+  const browser = globalThis.browser || globalThis.chrome;
   if (window.__watchalertSelectorActive) return;
   window.__watchalertSelectorActive = true;
 
@@ -103,13 +104,13 @@
     if (w < 12 || h < 12) return;
     const zone = relRect(startX, startY, e.clientX, e.clientY);
     cleanup();
-    chrome.runtime.sendMessage({ type: "ZONE_SELECTED", zone });
+    browser.runtime.sendMessage({ type: "ZONE_SELECTED", zone });
   });
 
   document.addEventListener("keydown", onKey);
   document.body.append(overlay, hint, box);
 
-  chrome.runtime.onMessage.addListener((msg) => {
+  browser.runtime.onMessage.addListener((msg) => {
     if (msg.type === "START_ZONE_SELECT") {
       /* already open */
     }

@@ -1,21 +1,22 @@
 import { DEFAULT_SETTINGS, STORAGE_KEYS } from "../shared/constants.js";
+import { browser } from "./browser.js";
 
 export async function getSettings() {
-  const data = await chrome.storage.local.get(STORAGE_KEYS.settings);
+  const data = await browser.storage.local.get(STORAGE_KEYS.settings);
   return { ...DEFAULT_SETTINGS, ...(data[STORAGE_KEYS.settings] || {}) };
 }
 
 export async function saveSettings(settings) {
-  await chrome.storage.local.set({ [STORAGE_KEYS.settings]: settings });
+  await browser.storage.local.set({ [STORAGE_KEYS.settings]: settings });
 }
 
 export async function getMonitors() {
-  const data = await chrome.storage.local.get(STORAGE_KEYS.monitors);
+  const data = await browser.storage.local.get(STORAGE_KEYS.monitors);
   return data[STORAGE_KEYS.monitors] || [];
 }
 
 export async function saveMonitors(monitors) {
-  await chrome.storage.local.set({ [STORAGE_KEYS.monitors]: monitors });
+  await browser.storage.local.set({ [STORAGE_KEYS.monitors]: monitors });
 }
 
 export async function getMonitorByTabId(tabId) {

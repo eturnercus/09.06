@@ -1,3 +1,5 @@
+import { browser } from "../shared/browser.js";
+
 const delayInput = document.getElementById("delay");
 const sensInput = document.getElementById("sensitivity");
 const soundInput = document.getElementById("sound");
@@ -7,7 +9,7 @@ let state = { monitors: [], settings: {} };
 let soundDataUrl = "";
 
 async function send(type, payload = {}) {
-  return chrome.runtime.sendMessage({ type, ...payload });
+  return browser.runtime.sendMessage({ type, ...payload });
 }
 
 function readSettingsFromForm() {

@@ -5,6 +5,8 @@
 | `WatchAlert-windows-x86_64.exe` | Windows 10+ | Один исполняемый файл, Python не нужен |
 | `WatchAlert-x86_64.AppImage` | Linux x86_64 | AppImage, `chmod +x` и запуск |
 | `WatchAlert-linux-x86_64` | Linux x86_64 | Один исполняемый файл без AppImage |
+| `WatchAlert-Tab-chrome.zip` | Chrome / Edge | Расширение для вкладок (распаковать → загрузить unpacked) |
+| `WatchAlert-Tab-firefox.zip` | Firefox 109+ | То же расширение для Firefox |
 
 ## Запуск
 
@@ -28,7 +30,8 @@ chmod +x WatchAlert-linux-x86_64
 
 **Linux:**
 ```bash
-./build/build_all.sh
+./build/build_all.sh          # десктоп + zip расширений
+./build/build-extension.sh    # только Chrome/Firefox zip
 ```
 
 **Windows:**

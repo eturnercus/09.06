@@ -85,4 +85,18 @@ python -m watchalert.main
 
 ## Релизы
 
-Готовые сборки — на странице [Releases](https://github.com/eturnercus/09.06/releases).
+Готовые сборки десктопного приложения и **zip-архивы расширения для браузера** — на странице [Releases](https://github.com/eturnercus/09.06/releases).
+
+| Артефакт | Описание |
+|----------|----------|
+| `WatchAlert-Tab-chrome.zip` | Расширение для Chrome / Edge |
+| `WatchAlert-Tab-firefox.zip` | Расширение для Firefox |
+
+## Расширение для браузера
+
+**WatchAlert Tab** — тот же принцип, но зоны на **вкладках** браузера (мониторинг в фоне, пока вы в других вкладках). Поддерживаются **Chrome, Edge и Firefox**.
+
+Скачайте zip из [Releases](https://github.com/eturnercus/09.06/releases) или соберите: `./build/build-extension.sh`
+
+Установка из исходников: папка [`extension/`](extension/) → `chrome://extensions/` или Firefox `about:debugging`.  
+Подробнее: [extension/README.md](extension/README.md).

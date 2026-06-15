@@ -6,20 +6,23 @@ import {
   upsertMonitor,
 } from "../shared/storage.js";
 import { uid } from "../shared/constants.js";
+import { browser } from "../shared/browser.js";
+import { isFirefox } from "../shared/platform.js";
+import { syncFirefoxMonitor, stopFirefoxMonitor } from "./firefox-monitor.js";
 
 const OFFSCREEN_URL = "offscreen/offscreen.html";
 let offscreenReady = false;
 
 async function ensureOffscreen() {
-  const existing = await chrome.runtime.getContexts({
+  const existing = await browser.runtime.getContexts({
     contextTypes: ["OFFSCREEN_DOCUMENT"],
-    documentUrls: [chrome.runtime.getURL(OFFSCREEN_URL)],
+    documentUrls: [browser.runtime.getURL(OFFSCREEN_URL)],
   });
   if (existing.length > 0) {
     offscreenReady = true;
     return;
   }
-  await chrome.offscreen.createDocument({
+  await browser.offscreen.createDocument({
     url: OFFSCREEN_URL,
     reasons: ["USER_MEDIA", "AUDIO_PLAYBACK"],
     justification: "Захват кадров вкладки и воспроизведение сигнала",
@@ -31,12 +34,12 @@ async function closeOffscreenIfIdle() {
   const monitors = await getMonitors();
   const active = monitors.some((m) => m.enabled && m.zones.length > 0);
   if (active) return;
-  const existing = await chrome.runtime.getContexts({
+  const existing = await browser.runtime.getContexts({
     contextTypes: ["OFFSCREEN_DOCUMENT"],
-    documentUrls: [chrome.runtime.getURL(OFFSCREEN_URL)],
+    documentUrls: [browser.runtime.getURL(OFFSCREEN_URL)],
   });
   if (existing.length > 0) {
-    await chrome.offscreen.closeDocument();
+    await browser.offscreen.closeDocument();
     offscreenReady = false;
   }
 }
@@ -47,7 +50,7 @@ async function syncOffscreen() {
   const active = monitors.filter((m) => m.enabled && m.zones.length > 0);
   if (active.length === 0) {
     if (offscreenReady) {
-      await chrome.runtime.sendMessage({ type: "OFFSCREEN_STOP_ALL" }).catch(() => {});
+      await browser.runtime.sendMessage({ type: "OFFSCREEN_STOP_ALL" }).catch(() => {});
     }
     await closeOffscreenIfIdle();
     return;
@@ -56,29 +59,53 @@ async function syncOffscreen() {
   for (const m of monitors) {
     if (m.enabled && m.zones.length > 0) {
       try {
-        await chrome.tabs.get(m.tabId);
-        await chrome.tabs.update(m.tabId, { autoDiscardable: false });
+        await browser.tabs.get(m.tabId);
+        await browser.tabs.update(m.tabId, { autoDiscardable: false });
       } catch {
         await removeMonitor(m.tabId);
       }
     }
   }
-  await chrome.runtime.sendMessage({
+  await browser.runtime.sendMessage({
     type: "OFFSCREEN_SYNC",
     monitors: await getMonitors(),
     settings,
   });
 }
 
+async function syncCapture() {
+  if (isFirefox) {
+    const monitors = await getMonitors();
+    const active = monitors.some((m) => m.enabled && m.zones.length > 0);
+    if (!active) {
+      stopFirefoxMonitor();
+      return;
+    }
+    for (const m of monitors) {
+      if (m.enabled && m.zones.length > 0) {
+        try {
+          await browser.tabs.get(m.tabId);
+          await browser.tabs.update(m.tabId, { autoDiscardable: false });
+        } catch {
+          await removeMonitor(m.tabId);
+        }
+      }
+    }
+    await syncFirefoxMonitor();
+    return;
+  }
+  await syncOffscreen();
+}
+
 async function injectZoneSelector(tabId) {
-  await chrome.scripting.executeScript({
+  await browser.scripting.executeScript({
     target: { tabId },
     files: ["content/zone-selector.js"],
   });
-  await chrome.tabs.sendMessage(tabId, { type: "START_ZONE_SELECT" });
+  await browser.tabs.sendMessage(tabId, { type: "START_ZONE_SELECT" });
 }
 
-chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   (async () => {
     switch (msg.type) {
       case "GET_STATE": {
@@ -91,12 +118,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
       case "SAVE_SETTINGS": {
         await saveSettings(msg.settings);
-        await syncOffscreen();
+        await syncCapture();
         sendResponse({ ok: true });
         break;
       }
       case "ADD_CURRENT_TAB": {
-        const [tab] = await chrome.tabs.query({
+        const [tab] = await browser.tabs.query({
           active: true,
           currentWindow: true,
         });
@@ -128,7 +155,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         const monitors = await getMonitors();
         let monitor = monitors.find((m) => m.tabId === tabId);
         if (!monitor) {
-          const tab = await chrome.tabs.get(tabId);
+          const tab = await browser.tabs.get(tabId);
           monitor = {
             tabId,
             windowId: tab.windowId,
@@ -157,13 +184,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           monitor.zones = monitor.zones.filter((z) => z.id !== msg.zoneId);
           await upsertMonitor(monitor);
         }
-        await syncOffscreen();
+        await syncCapture();
         sendResponse({ ok: true });
         break;
       }
       case "REMOVE_TAB": {
         await removeMonitor(msg.tabId);
-        await syncOffscreen();
+        await syncCapture();
         sendResponse({ ok: true });
         break;
       }
@@ -174,7 +201,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           monitor.enabled = msg.enabled;
           await upsertMonitor(monitor);
         }
-        await syncOffscreen();
+        await syncCapture();
         sendResponse({ ok: true });
         break;
       }
@@ -186,7 +213,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             await upsertMonitor(m);
           }
         }
-        await syncOffscreen();
+        await syncCapture();
         sendResponse({ ok: true });
         break;
       }
@@ -196,14 +223,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           m.enabled = false;
           await upsertMonitor(m);
         }
-        await syncOffscreen();
+        await syncCapture();
         sendResponse({ ok: true });
         break;
       }
       case "ALARM": {
-        chrome.action.setBadgeText({ text: "!" });
-        chrome.action.setBadgeBackgroundColor({ color: "#e53935" });
-        setTimeout(() => chrome.action.setBadgeText({ text: "" }), 3000);
+        browser.action.setBadgeText({ text: "!" });
+        browser.action.setBadgeBackgroundColor({ color: "#e53935" });
+        setTimeout(() => browser.action.setBadgeText({ text: "" }), 3000);
         sendResponse({ ok: true });
         break;
       }
@@ -214,12 +241,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   return true;
 });
 
-chrome.tabs.onRemoved.addListener(async (tabId) => {
+browser.tabs.onRemoved.addListener(async (tabId) => {
   await removeMonitor(tabId);
-  await syncOffscreen();
+  await syncCapture();
 });
 
-chrome.tabs.onUpdated.addListener(async (tabId, info, tab) => {
+browser.tabs.onUpdated.addListener(async (tabId, info, tab) => {
   if (info.title || info.url) {
     const monitors = await getMonitors();
     const monitor = monitors.find((m) => m.tabId === tabId);
@@ -231,5 +258,5 @@ chrome.tabs.onUpdated.addListener(async (tabId, info, tab) => {
   }
 });
 
-chrome.runtime.onStartup.addListener(() => syncOffscreen());
-chrome.runtime.onInstalled.addListener(() => syncOffscreen());
+browser.runtime.onStartup.addListener(() => syncCapture());
+browser.runtime.onInstalled.addListener(() => syncCapture());

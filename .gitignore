@@ -12,3 +12,4 @@ build/win-python/
 build/windows-py/
 build/python-*
 build/appimagetool-*
+build/extension-staging/
