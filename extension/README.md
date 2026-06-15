@@ -7,7 +7,7 @@
 
 ## Установка из релиза
 
-На [странице Releases](https://github.com/eturnercus/09.06/releases) скачайте:
+На [странице Releases](https://github.com/eturnercus/09.06/releases) скачайте **v1.3.8** или новее:
 
 | Файл | Браузер |
 |------|---------|
@@ -62,7 +62,7 @@
 
 - Зоны задаются в **долях окна вкладки** (0–1), привязаны к видимой области
 - **Chrome:** offscreen-документ + `tabCapture` — захват вкладки в фоне
-- **Firefox:** `tabs.captureTab()` в service worker (API Firefox, фоновые вкладки)
+- **Firefox:** служебная вкладка `ff-monitor.html` + `tabs.captureTab()` из background-скрипта
 - Логика сигнала та же, что в десктопном WatchAlert: одно срабатывание на изменение, без повтора без нового отличия
 
 ## Ограничения
