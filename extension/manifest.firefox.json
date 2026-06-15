@@ -9,7 +9,7 @@
       "strict_min_version": "121.0"
     }
   },
-  "permissions": ["tabs", "storage", "scripting"],
+  "permissions": ["tabs", "storage", "unlimitedStorage", "scripting"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "scripts": ["background/service-worker.js"],

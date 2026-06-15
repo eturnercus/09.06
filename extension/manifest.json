@@ -7,6 +7,7 @@
     "tabs",
     "tabCapture",
     "storage",
+    "unlimitedStorage",
     "offscreen",
     "alarms",
     "scripting"

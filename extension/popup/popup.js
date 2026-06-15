@@ -2,14 +2,15 @@ import { browser } from "../shared/browser.js";
 
 const delayInput = document.getElementById("delay");
 const sensInput = document.getElementById("sensitivity");
-const soundInput = document.getElementById("sound");
+const soundNameEl = document.getElementById("sound-name");
 const tabList = document.getElementById("tab-list");
 
 let state = { monitors: [], settings: {} };
-let soundDataUrl = "";
 
 async function send(type, payload = {}) {
-  return browser.runtime.sendMessage({ type, ...payload });
+  const res = await browser.runtime.sendMessage({ type, ...payload });
+  if (res?.error) throw new Error(res.error);
+  return res;
 }
 
 function readSettingsFromForm() {
@@ -17,7 +18,8 @@ function readSettingsFromForm() {
     delaySeconds: Math.max(1, Number(delayInput.value) || 5),
     sensitivity: Math.max(1, Number(sensInput.value) || 8),
     pollMs: 500,
-    soundDataUrl,
+    soundDataUrl: state.settings.soundDataUrl || "",
+    soundFileName: state.settings.soundFileName || "",
   };
 }
 
@@ -27,25 +29,52 @@ async function saveSettings() {
   state.settings = settings;
 }
 
-delayInput.addEventListener("change", saveSettings);
-sensInput.addEventListener("change", saveSettings);
+function updateSoundLabel() {
+  const name = state.settings.soundFileName;
+  const hasSound = Boolean(state.settings.soundDataUrl);
+  soundNameEl.textContent = hasSound
+    ? name || "пользовательский файл"
+    : "встроенный сигнал";
+  document.getElementById("clear-sound").disabled = !hasSound;
+}
 
-soundInput.addEventListener("change", async () => {
-  const file = soundInput.files?.[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = async () => {
-    soundDataUrl = reader.result;
-    await saveSettings();
-  };
-  reader.readAsDataURL(file);
+delayInput.addEventListener("change", () => saveSettings().catch(console.error));
+sensInput.addEventListener("change", () => saveSettings().catch(console.error));
+
+document.getElementById("pick-sound").addEventListener("click", () => {
+  browser.tabs.create({
+    url: browser.runtime.getURL("pages/sound-picker.html"),
+    active: true,
+  });
+  window.close();
+});
+
+document.getElementById("clear-sound").addEventListener("click", async () => {
+  try {
+    const settings = {
+      ...readSettingsFromForm(),
+      soundDataUrl: "",
+      soundFileName: "",
+    };
+    await send("SAVE_SETTINGS", { settings });
+    state.settings = settings;
+    updateSoundLabel();
+  } catch (e) {
+    console.error(e);
+  }
 });
 
 document.getElementById("test-sound").addEventListener("click", async () => {
-  await saveSettings();
-  const audio = new Audio(soundDataUrl || "");
-  if (soundDataUrl) audio.play().catch(() => beep());
-  else beep();
+  try {
+    await saveSettings();
+    const soundDataUrl = state.settings.soundDataUrl || "";
+    const audio = new Audio(soundDataUrl || "");
+    if (soundDataUrl) audio.play().catch(() => beep());
+    else beep();
+  } catch (e) {
+    console.error(e);
+    beep();
+  }
 });
 
 function beep() {
@@ -155,7 +184,7 @@ async function refresh() {
   state.settings = res.settings || {};
   delayInput.value = state.settings.delaySeconds ?? 5;
   sensInput.value = state.settings.sensitivity ?? 8;
-  soundDataUrl = state.settings.soundDataUrl || "";
+  updateSoundLabel();
   render();
 }
 
@@ -175,4 +204,8 @@ document.getElementById("stop-all").addEventListener("click", async () => {
   await refresh();
 });
 
-refresh();
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") refresh().catch(console.error);
+});
+
+refresh().catch(console.error);

@@ -5,7 +5,11 @@ export const DEFAULT_SETTINGS = {
   sensitivity: 8,
   pollMs: 500,
   soundDataUrl: "",
+  soundFileName: "",
 };
+
+/** ~8 МБ сырого файла; base64 чуть больше. */
+export const MAX_SOUND_BYTES = 8 * 1024 * 1024;
 
 export const STORAGE_KEYS = {
   settings: "settings",

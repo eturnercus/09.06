@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <title>WatchAlert — выбор звука</title>
+    <style>
+      body {
+        font: 14px/1.5 system-ui, sans-serif;
+        max-width: 420px;
+        margin: 40px auto;
+        padding: 0 16px;
+        color: #1a1a1a;
+      }
+      h1 {
+        font-size: 20px;
+      }
+      .status {
+        margin: 12px 0;
+        padding: 10px;
+        border-radius: 8px;
+        background: #f4f6f8;
+        border: 1px solid #dde3ea;
+        min-height: 1.2em;
+      }
+      .status.error {
+        background: #fdecea;
+        border-color: #f5c6c2;
+        color: #b71c1c;
+      }
+      .status.ok {
+        background: #e8f5e9;
+        border-color: #c8e6c9;
+        color: #1b5e20;
+      }
+      label {
+        display: inline-block;
+        padding: 10px 16px;
+        background: #00a86b;
+        color: #fff;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      input[type="file"] {
+        display: none;
+      }
+      button {
+        margin-left: 8px;
+        padding: 10px 14px;
+        border: none;
+        border-radius: 8px;
+        background: #e8edf2;
+        cursor: pointer;
+      }
+      .hint {
+        font-size: 12px;
+        color: #555;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Звук сигнала</h1>
+    <p class="hint">
+      Выбор файла в popup закрывает окно расширения — поэтому звук выбирается здесь.
+      Поддерживаются WAV, MP3, OGG и др. (до 8 МБ).
+    </p>
+    <p>
+      <label for="file">Выбрать файл</label>
+      <button type="button" id="clear">Сбросить</button>
+      <input id="file" type="file" accept="audio/*,.wav,.mp3,.ogg,.flac,.m4a" />
+    </p>
+    <div id="status" class="status"></div>
+    <script type="module" src="sound-picker.js"></script>
+  </body>
+</html>

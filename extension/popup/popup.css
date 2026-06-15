@@ -45,6 +45,30 @@ input[type="number"] {
   border-radius: 6px;
 }
 
+.sound-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: #444;
+}
+
+.sound-label {
+  font-weight: 500;
+}
+
+.sound-name {
+  font-size: 11px;
+  color: #333;
+  word-break: break-all;
+}
+
+.sound-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .tabs-section {
   background: #fff;
   border: 1px solid #dde3ea;

@@ -20,10 +20,14 @@
         Чувствительность
         <input id="sensitivity" type="number" min="1" max="50" value="8" />
       </label>
-      <label class="file">
-        Звук
-        <input id="sound" type="file" accept="audio/*" />
-      </label>
+      <div class="sound-row">
+        <span class="sound-label">Звук</span>
+        <span id="sound-name" class="sound-name">встроенный сигнал</span>
+        <div class="sound-actions">
+          <button id="pick-sound" type="button" class="secondary small">Выбрать файл…</button>
+          <button id="clear-sound" type="button" class="secondary small">Сброс</button>
+        </div>
+      </div>
       <button id="test-sound" type="button" class="secondary">Тест звука</button>
     </section>
 
