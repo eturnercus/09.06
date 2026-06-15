@@ -1,0 +1,181 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  width: 360px;
+  margin: 0;
+  padding: 12px;
+  font: 13px/1.4 system-ui, sans-serif;
+  color: #1a1a1a;
+  background: #f4f6f8;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.sub {
+  margin: 4px 0 12px;
+  color: #555;
+}
+
+.settings {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 10px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #dde3ea;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #444;
+}
+
+input[type="number"] {
+  padding: 6px 8px;
+  border: 1px solid #ccd5df;
+  border-radius: 6px;
+}
+
+.tabs-section {
+  background: #fff;
+  border: 1px solid #dde3ea;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.row h2 {
+  margin: 0;
+  font-size: 14px;
+}
+
+#tab-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.tab-item {
+  border: 1px solid #e3e8ee;
+  border-radius: 8px;
+  padding: 8px;
+  margin-bottom: 8px;
+  background: #fafbfc;
+}
+
+.tab-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.tab-title {
+  flex: 1;
+  font-weight: 600;
+  font-size: 12px;
+  word-break: break-word;
+}
+
+.tab-url {
+  font-size: 11px;
+  color: #666;
+  word-break: break-all;
+  margin: 4px 0 6px;
+}
+
+.tab-actions,
+.zone-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.zones {
+  margin: 6px 0 0;
+  padding-left: 16px;
+  font-size: 11px;
+  color: #333;
+}
+
+button {
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+button.primary {
+  background: #00a86b;
+  color: #fff;
+}
+
+button.danger {
+  background: #d64545;
+  color: #fff;
+}
+
+button.secondary {
+  background: #e8edf2;
+  color: #222;
+}
+
+button.small {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+footer {
+  display: flex;
+  gap: 8px;
+}
+
+footer button {
+  flex: 1;
+}
+
+.hint {
+  margin: 10px 0 0;
+  font-size: 11px;
+  color: #555;
+}
+
+.badge-on {
+  color: #00a86b;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.badge-off {
+  color: #888;
+  font-size: 11px;
+}
+
+.empty {
+  color: #777;
+  font-size: 12px;
+  padding: 8px 0;
+}

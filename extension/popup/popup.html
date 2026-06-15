@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <title>WatchAlert Tab</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header>
+      <h1>WatchAlert Tab</h1>
+      <p class="sub">Мониторинг зон на вкладках</p>
+    </header>
+
+    <section class="settings">
+      <label>
+        Задержка (сек)
+        <input id="delay" type="number" min="1" max="3600" value="5" />
+      </label>
+      <label>
+        Чувствительность
+        <input id="sensitivity" type="number" min="1" max="50" value="8" />
+      </label>
+      <label class="file">
+        Звук
+        <input id="sound" type="file" accept="audio/*" />
+      </label>
+      <button id="test-sound" type="button" class="secondary">Тест звука</button>
+    </section>
+
+    <section class="tabs-section">
+      <div class="row">
+        <h2>Вкладки</h2>
+        <button id="add-tab" type="button">+ Текущая</button>
+      </div>
+      <ul id="tab-list"></ul>
+    </section>
+
+    <footer>
+      <button id="start-all" type="button" class="primary">▶ Старт</button>
+      <button id="stop-all" type="button" class="danger">■ Стоп</button>
+    </footer>
+
+    <p class="hint">
+      Добавьте вкладку → выделите зоны → Старт. Можно переключаться на другие
+      вкладки — наблюдение продолжится в фоне.
+    </p>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>
