@@ -164,3 +164,5 @@ browser.runtime.onMessage.addListener((msg) => {
     stopAll();
   }
 });
+
+browser.runtime.sendMessage({ type: "OFFSCREEN_READY" }).catch(() => {});

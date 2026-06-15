@@ -338,6 +338,11 @@ browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         sendResponse({ ok: true });
         break;
       }
+      case "OFFSCREEN_READY": {
+        await syncOffscreen();
+        sendResponse({ ok: true });
+        break;
+      }
       case "FF_CAPTURE_TAB": {
         const dataUrl = await browser.tabs.captureTab(msg.tabId, { format: "png" });
         sendResponse({ dataUrl });

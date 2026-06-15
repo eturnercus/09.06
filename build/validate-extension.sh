@@ -47,7 +47,41 @@ with zipfile.ZipFile('$ART/WatchAlert-Tab-firefox.zip') as z:
 assert 'browser_specific_settings' in m
 "
 
-# Критичные ES-модули (фон + shared) — должны импортироваться без ошибок
+check "Chrome manifest.json valid" python3 -c "
+import json, zipfile
+with zipfile.ZipFile('$ART/WatchAlert-Tab-chrome.zip') as z:
+    m = json.loads(z.read('manifest.json'))
+assert m['manifest_version'] == 3
+assert m['background']['type'] == 'module'
+assert 'service_worker' in m['background'], 'Chrome needs background.service_worker'
+assert 'scripts' not in m['background'], 'Chrome must not use background.scripts'
+assert 'tabCapture' in m['permissions']
+assert 'offscreen' in m['permissions']
+assert 'browser_specific_settings' not in m
+"
+
+CHROME_REQUIRED=(
+  manifest.json
+  background/service-worker.js
+  offscreen/offscreen.html
+  offscreen/offscreen.js
+  content/zone-selector.js
+  popup/popup.html
+  popup/popup.js
+)
+
+for path in "${CHROME_REQUIRED[@]}"; do
+  if unzip -Z1 "$ART/WatchAlert-Tab-chrome.zip" | grep -qxF "$path"; then
+    green "OK  chrome zip contains $path"
+  else
+    red "FAIL  chrome zip contains $path"
+    FAIL=1
+  fi
+done
+
+check "offscreen sends OFFSCREEN_READY" grep -q OFFSCREEN_READY "$EXT/offscreen/offscreen.js"
+check "service-worker handles OFFSCREEN_READY" grep -q OFFSCREEN_READY "$EXT/background/service-worker.js"
+
 CRITICAL_MODULES=(
   background/service-worker.js
   background/firefox-sync.js
