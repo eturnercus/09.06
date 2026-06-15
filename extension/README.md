@@ -12,7 +12,7 @@
 | Файл | Браузер |
 |------|---------|
 | `WatchAlert-Tab-chrome.zip` | Chrome, Edge, Brave и др. Chromium |
-| `WatchAlert-Tab-firefox.zip` | Firefox 109+ |
+| `WatchAlert-Tab-firefox.zip` | Firefox 121+ |
 
 Распакуйте zip в любую папку и установите распакованное расширение (см. ниже).
 

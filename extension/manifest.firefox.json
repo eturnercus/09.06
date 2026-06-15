@@ -6,13 +6,13 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "watchalert-tab@eturnercus.github",
-      "strict_min_version": "109.0"
+      "strict_min_version": "121.0"
     }
   },
   "permissions": ["tabs", "storage", "scripting"],
   "host_permissions": ["<all_urls>"],
   "background": {
-    "service_worker": "background/service-worker.js",
+    "scripts": ["background/service-worker.js"],
     "type": "module"
   },
   "action": {

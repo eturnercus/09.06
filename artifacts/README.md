@@ -6,7 +6,7 @@
 | `WatchAlert-x86_64.AppImage` | Linux x86_64 | AppImage, `chmod +x` и запуск |
 | `WatchAlert-linux-x86_64` | Linux x86_64 | Один исполняемый файл без AppImage |
 | `WatchAlert-Tab-chrome.zip` | Chrome / Edge | Расширение для вкладок (распаковать → загрузить unpacked) |
-| `WatchAlert-Tab-firefox.zip` | Firefox 109+ | То же расширение для Firefox |
+| `WatchAlert-Tab-firefox.zip` | Firefox 121+ | То же расширение для Firefox |
 
 ## Запуск
 
