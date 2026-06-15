@@ -31,6 +31,17 @@
       <button id="test-sound" type="button" class="secondary">Тест звука</button>
     </section>
 
+    <section class="window-pin">
+      <div class="row">
+        <h2>Окно</h2>
+      </div>
+      <p id="pin-status" class="pin-status">Не закреплено — мониторинг любых вкладок</p>
+      <div class="pin-actions">
+        <button id="pin-window" type="button" class="secondary small">Закрепить текущее окно</button>
+        <button id="unpin-window" type="button" class="secondary small" hidden>Открепить</button>
+      </div>
+    </section>
+
     <section class="tabs-section">
       <div class="row">
         <h2>Вкладки</h2>
@@ -45,8 +56,8 @@
     </footer>
 
     <p class="hint">
-      Добавьте вкладку → выделите зоны → Старт. Можно переключаться на другие
-      вкладки — наблюдение продолжится в фоне.
+      Можно закрепить окно — при старте расширение найдёт его по вкладкам, даже после
+      перезапуска браузера.
     </p>
 
     <script type="module" src="popup.js"></script>

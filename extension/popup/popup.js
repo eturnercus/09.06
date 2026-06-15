@@ -92,6 +92,24 @@ function beep() {
   }, 350);
 }
 
+function updatePinStatus() {
+  const pin = state.settings.pinnedWindow;
+  const el = document.getElementById("pin-status");
+  const pinBtn = document.getElementById("pin-window");
+  const unpinBtn = document.getElementById("unpin-window");
+  if (pin) {
+    el.textContent = `Закреплено: ${pin.label}`;
+    el.classList.add("pinned");
+    pinBtn.hidden = true;
+    unpinBtn.hidden = false;
+  } else {
+    el.textContent = "Не закреплено — мониторинг любых вкладок";
+    el.classList.remove("pinned");
+    pinBtn.hidden = false;
+    unpinBtn.hidden = true;
+  }
+}
+
 function render() {
   tabList.innerHTML = "";
   if (!state.monitors.length) {
@@ -185,18 +203,41 @@ async function refresh() {
   delayInput.value = state.settings.delaySeconds ?? 5;
   sensInput.value = state.settings.sensitivity ?? 8;
   updateSoundLabel();
+  updatePinStatus();
   render();
 }
 
-document.getElementById("add-tab").addEventListener("click", async () => {
-  await send("ADD_CURRENT_TAB");
+document.getElementById("pin-window").addEventListener("click", async () => {
+  try {
+    await send("PIN_CURRENT_WINDOW");
+    await refresh();
+  } catch (e) {
+    alert(e.message || String(e));
+  }
+});
+
+document.getElementById("unpin-window").addEventListener("click", async () => {
+  await send("UNPIN_WINDOW");
   await refresh();
 });
 
+document.getElementById("add-tab").addEventListener("click", async () => {
+  try {
+    await send("ADD_CURRENT_TAB");
+    await refresh();
+  } catch (e) {
+    alert(e.message || String(e));
+  }
+});
+
 document.getElementById("start-all").addEventListener("click", async () => {
-  await saveSettings();
-  await send("START_ALL");
-  await refresh();
+  try {
+    await saveSettings();
+    await send("START_ALL");
+    await refresh();
+  } catch (e) {
+    alert(e.message || String(e));
+  }
 });
 
 document.getElementById("stop-all").addEventListener("click", async () => {

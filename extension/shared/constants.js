@@ -6,6 +6,8 @@ export const DEFAULT_SETTINGS = {
   pollMs: 500,
   soundDataUrl: "",
   soundFileName: "",
+  /** @type {null | { label: string, lastWindowId: number, windowTabUrls: string[], monitoredUrls: string[] }} */
+  pinnedWindow: null,
 };
 
 /** ~8 МБ сырого файла; base64 чуть больше. */

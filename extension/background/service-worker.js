@@ -2,6 +2,7 @@ import {
   getMonitors,
   getSettings,
   removeMonitor,
+  saveMonitors,
   saveSettings,
   upsertMonitor,
 } from "../shared/storage.js";
@@ -9,6 +10,11 @@ import { uid } from "../shared/constants.js";
 import { browser } from "../shared/browser.js";
 import { isFirefox } from "../shared/platform.js";
 import { syncFirefoxCapture } from "./firefox-sync.js";
+import {
+  buildPinnedWindow,
+  refreshPinnedFromMonitors,
+  resolvePinnedSession,
+} from "../shared/window-pin.js";
 
 const OFFSCREEN_URL = "offscreen/offscreen.html";
 let offscreenReady = false;
@@ -96,6 +102,34 @@ async function syncCapture() {
   await syncOffscreen();
 }
 
+async function refreshPinnedUrls(settings, monitors) {
+  if (!settings?.pinnedWindow) return settings;
+  const next = {
+    ...settings,
+    pinnedWindow: refreshPinnedFromMonitors(
+      settings.pinnedWindow,
+      monitors,
+      settings.pinnedWindow.lastWindowId
+    ),
+  };
+  await saveSettings(next);
+  return next;
+}
+
+async function tryRestorePinnedOnStartup() {
+  const settings = await getSettings();
+  if (!settings.pinnedWindow) return;
+  const monitors = await getMonitors();
+  if (!monitors.some((m) => m.enabled && m.zones.length > 0)) return;
+  try {
+    const resolved = await resolvePinnedSession(settings, monitors);
+    await saveSettings(resolved.settings);
+    await saveMonitors(resolved.monitors);
+  } catch (e) {
+    console.warn("WatchAlert: закреплённое окно не найдено при старте", e);
+  }
+}
+
 async function injectZoneSelector(tabId) {
   await browser.scripting.executeScript({
     target: { tabId },
@@ -127,6 +161,21 @@ browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           currentWindow: true,
         });
         if (!tab?.id) throw new Error("Нет активной вкладки");
+        let settings = await getSettings();
+        if (settings.pinnedWindow) {
+          const resolved = await resolvePinnedSession(
+            settings,
+            await getMonitors()
+          );
+          settings = resolved.settings;
+          await saveSettings(settings);
+          await saveMonitors(resolved.monitors);
+          if (tab.windowId !== resolved.window.id) {
+            throw new Error(
+              `Добавляйте вкладки только из закреплённого окна «${settings.pinnedWindow.label}»`
+            );
+          }
+        }
         let monitor = (await getMonitors()).find((m) => m.tabId === tab.id);
         if (!monitor) {
           monitor = {
@@ -139,7 +188,28 @@ browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           };
           await upsertMonitor(monitor);
         }
-        sendResponse({ monitor });
+        settings = await refreshPinnedUrls(settings, await getMonitors());
+        sendResponse({ monitor, pinnedWindow: settings.pinnedWindow });
+        break;
+      }
+      case "PIN_CURRENT_WINDOW": {
+        const [tab] = await browser.tabs.query({
+          active: true,
+          currentWindow: true,
+        });
+        if (!tab?.windowId) throw new Error("Нет активного окна");
+        const win = await browser.windows.get(tab.windowId, { populate: true });
+        let settings = await getSettings();
+        settings.pinnedWindow = buildPinnedWindow(win, await getMonitors());
+        await saveSettings(settings);
+        sendResponse({ pinnedWindow: settings.pinnedWindow });
+        break;
+      }
+      case "UNPIN_WINDOW": {
+        const settings = await getSettings();
+        settings.pinnedWindow = null;
+        await saveSettings(settings);
+        sendResponse({ ok: true });
         break;
       }
       case "SELECT_ZONE": {
@@ -173,6 +243,10 @@ browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           label: `Зона ${monitor.zones.length + 1}`,
         });
         await upsertMonitor(monitor);
+        let settings = await getSettings();
+        if (settings.pinnedWindow) {
+          await refreshPinnedUrls(settings, await getMonitors());
+        }
         sendResponse({ monitor });
         break;
       }
@@ -183,12 +257,20 @@ browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           monitor.zones = monitor.zones.filter((z) => z.id !== msg.zoneId);
           await upsertMonitor(monitor);
         }
+        const settings = await getSettings();
+        if (settings.pinnedWindow) {
+          await refreshPinnedUrls(settings, await getMonitors());
+        }
         await syncCapture();
         sendResponse({ ok: true });
         break;
       }
       case "REMOVE_TAB": {
         await removeMonitor(msg.tabId);
+        const settings = await getSettings();
+        if (settings.pinnedWindow) {
+          await refreshPinnedUrls(settings, await getMonitors());
+        }
         await syncCapture();
         sendResponse({ ok: true });
         break;
@@ -205,15 +287,30 @@ browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         break;
       }
       case "START_ALL": {
-        const monitors = await getMonitors();
+        let settings = await getSettings();
+        let monitors = await getMonitors();
+        if (settings.pinnedWindow) {
+          const resolved = await resolvePinnedSession(settings, monitors);
+          settings = resolved.settings;
+          monitors = resolved.monitors;
+          await saveSettings(settings);
+          await saveMonitors(monitors);
+        }
+        const pinWid = settings.pinnedWindow?.lastWindowId;
         for (const m of monitors) {
-          if (m.zones.length > 0) {
+          if (m.zones.length === 0) continue;
+          if (pinWid != null && m.windowId !== pinWid) continue;
+          try {
+            await browser.tabs.get(m.tabId);
             m.enabled = true;
+            await upsertMonitor(m);
+          } catch {
+            m.enabled = false;
             await upsertMonitor(m);
           }
         }
         await syncCapture();
-        sendResponse({ ok: true });
+        sendResponse({ ok: true, pinnedWindow: settings.pinnedWindow });
         break;
       }
       case "STOP_ALL": {
@@ -263,5 +360,19 @@ browser.tabs.onUpdated.addListener(async (tabId, info, tab) => {
   }
 });
 
-browser.runtime.onStartup.addListener(() => syncCapture());
-browser.runtime.onInstalled.addListener(() => syncCapture());
+browser.runtime.onStartup.addListener(async () => {
+  await tryRestorePinnedOnStartup();
+  await syncCapture();
+});
+browser.runtime.onInstalled.addListener(async () => {
+  await tryRestorePinnedOnStartup();
+  await syncCapture();
+});
+
+browser.windows.onRemoved.addListener(async (windowId) => {
+  const settings = await getSettings();
+  if (settings.pinnedWindow?.lastWindowId === windowId) {
+    settings.pinnedWindow = { ...settings.pinnedWindow, lastWindowId: undefined };
+    await saveSettings(settings);
+  }
+});
