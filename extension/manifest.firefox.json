@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "WatchAlert Tab",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Мониторинг зон на вкладках браузера со звуковым сигналом при устойчивых изменениях",
   "browser_specific_settings": {
     "gecko": {

@@ -1,12 +1,12 @@
 import { browser } from "../shared/browser.js";
 import { cropImageData, ChangeTracker } from "../shared/diff.js";
-import { getMonitors, getSettings } from "../shared/storage.js";
+
+const alarm = document.getElementById("alarm");
 
 /** tabId -> session */
 const sessions = new Map();
 
 let settings = { delaySeconds: 5, sensitivity: 8, pollMs: 500, soundDataUrl: "" };
-let alarmPlayerTabId = null;
 
 function buildTrackers(monitor) {
   const map = new Map();
@@ -23,41 +23,32 @@ function stopSession(tabId) {
   sessions.delete(tabId);
 }
 
-async function closeAlarmPlayer() {
-  if (!alarmPlayerTabId) return;
-  try {
-    await browser.tabs.remove(alarmPlayerTabId);
-  } catch {
-    /* already closed */
-  }
-  alarmPlayerTabId = null;
+function stopAll() {
+  for (const tabId of [...sessions.keys()]) stopSession(tabId);
 }
 
-async function ensureAlarmPlayer() {
-  if (alarmPlayerTabId) {
-    try {
-      await browser.tabs.get(alarmPlayerTabId);
-      return;
-    } catch {
-      alarmPlayerTabId = null;
-    }
-  }
-  const tab = await browser.tabs.create({
-    url: browser.runtime.getURL("pages/alarm-player.html"),
-    active: false,
-    pinned: true,
-  });
-  alarmPlayerTabId = tab.id;
+function beep() {
+  const ctx = new AudioContext();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.frequency.value = 880;
+  gain.gain.value = 0.15;
+  osc.start();
+  setTimeout(() => {
+    osc.stop();
+    ctx.close();
+  }, 400);
 }
 
-async function playAlarm() {
-  await ensureAlarmPlayer();
-  await browser.runtime
-    .sendMessage({
-      type: "PLAY_ALARM",
-      soundDataUrl: settings.soundDataUrl || "",
-    })
-    .catch(() => {});
+function playAlarm() {
+  if (settings.soundDataUrl) {
+    alarm.src = settings.soundDataUrl;
+    alarm.play().catch(() => beep());
+  } else {
+    beep();
+  }
 }
 
 async function captureFrame(tabId) {
@@ -92,7 +83,7 @@ async function tickSession(tabId) {
     if (!tracker) continue;
     const crop = cropImageData(frame.data, frame.w, frame.h, zone);
     if (tracker.process(crop.data, crop.w, crop.h, now)) {
-      await playAlarm();
+      playAlarm();
       browser.runtime
         .sendMessage({
           type: "ALARM",
@@ -121,9 +112,7 @@ function ensureSession(monitor) {
   sessions.set(monitor.tabId, session);
 }
 
-export async function syncFirefoxMonitor() {
-  settings = await getSettings();
-  const monitors = await getMonitors();
+function syncState(monitors) {
   const want = monitors.filter((m) => m.enabled && m.zones.length > 0);
   const wantIds = new Set(want.map((m) => m.tabId));
 
@@ -131,25 +120,18 @@ export async function syncFirefoxMonitor() {
     if (!wantIds.has(tabId)) stopSession(tabId);
   }
 
-  if (want.length === 0) {
-    await closeAlarmPlayer();
-    return;
-  }
-
-  await ensureAlarmPlayer();
-
   for (const m of want) {
-    try {
-      await browser.tabs.get(m.tabId);
-      await browser.tabs.update(m.tabId, { autoDiscardable: false });
-      ensureSession(m);
-    } catch {
-      stopSession(m.tabId);
-    }
+    ensureSession(m);
   }
 }
 
-export function stopFirefoxMonitor() {
-  for (const tabId of [...sessions.keys()]) stopSession(tabId);
-  closeAlarmPlayer();
-}
+browser.runtime.onMessage.addListener((msg) => {
+  if (msg.type === "FF_MONITOR_SYNC") {
+    settings = msg.settings || settings;
+    if (settings.soundDataUrl) alarm.src = settings.soundDataUrl;
+    syncState(msg.monitors || []);
+  }
+  if (msg.type === "FF_MONITOR_STOP_ALL") {
+    stopAll();
+  }
+});

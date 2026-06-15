@@ -8,19 +8,26 @@ import {
 import { uid } from "../shared/constants.js";
 import { browser } from "../shared/browser.js";
 import { isFirefox } from "../shared/platform.js";
-import { syncFirefoxMonitor, stopFirefoxMonitor } from "./firefox-monitor.js";
+import { syncFirefoxCapture } from "./firefox-sync.js";
 
 const OFFSCREEN_URL = "offscreen/offscreen.html";
 let offscreenReady = false;
 
+function supportsOffscreen() {
+  return !isFirefox && Boolean(browser.offscreen?.createDocument);
+}
+
 async function ensureOffscreen() {
-  const existing = await browser.runtime.getContexts({
-    contextTypes: ["OFFSCREEN_DOCUMENT"],
-    documentUrls: [browser.runtime.getURL(OFFSCREEN_URL)],
-  });
-  if (existing.length > 0) {
-    offscreenReady = true;
-    return;
+  if (!supportsOffscreen()) return;
+  if (browser.runtime.getContexts) {
+    const existing = await browser.runtime.getContexts({
+      contextTypes: ["OFFSCREEN_DOCUMENT"],
+      documentUrls: [browser.runtime.getURL(OFFSCREEN_URL)],
+    });
+    if (existing.length > 0) {
+      offscreenReady = true;
+      return;
+    }
   }
   await browser.offscreen.createDocument({
     url: OFFSCREEN_URL,
@@ -31,15 +38,23 @@ async function ensureOffscreen() {
 }
 
 async function closeOffscreenIfIdle() {
+  if (!supportsOffscreen()) return;
   const monitors = await getMonitors();
   const active = monitors.some((m) => m.enabled && m.zones.length > 0);
   if (active) return;
-  const existing = await browser.runtime.getContexts({
-    contextTypes: ["OFFSCREEN_DOCUMENT"],
-    documentUrls: [browser.runtime.getURL(OFFSCREEN_URL)],
-  });
-  if (existing.length > 0) {
-    await browser.offscreen.closeDocument();
+  if (browser.runtime.getContexts) {
+    const existing = await browser.runtime.getContexts({
+      contextTypes: ["OFFSCREEN_DOCUMENT"],
+      documentUrls: [browser.runtime.getURL(OFFSCREEN_URL)],
+    });
+    if (existing.length > 0) {
+      await browser.offscreen.closeDocument();
+      offscreenReady = false;
+      return;
+    }
+  }
+  if (offscreenReady) {
+    await browser.offscreen.closeDocument().catch(() => {});
     offscreenReady = false;
   }
 }
@@ -75,23 +90,7 @@ async function syncOffscreen() {
 
 async function syncCapture() {
   if (isFirefox) {
-    const monitors = await getMonitors();
-    const active = monitors.some((m) => m.enabled && m.zones.length > 0);
-    if (!active) {
-      stopFirefoxMonitor();
-      return;
-    }
-    for (const m of monitors) {
-      if (m.enabled && m.zones.length > 0) {
-        try {
-          await browser.tabs.get(m.tabId);
-          await browser.tabs.update(m.tabId, { autoDiscardable: false });
-        } catch {
-          await removeMonitor(m.tabId);
-        }
-      }
-    }
-    await syncFirefoxMonitor();
+    await syncFirefoxCapture();
     return;
   }
   await syncOffscreen();
@@ -234,6 +233,12 @@ browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         sendResponse({ ok: true });
         break;
       }
+      case "FF_MONITOR_SYNC":
+      case "FF_MONITOR_STOP_ALL":
+      case "OFFSCREEN_SYNC":
+      case "OFFSCREEN_STOP_ALL":
+      case "PLAY_ALARM":
+        break;
       default:
         sendResponse({ error: "unknown" });
     }
