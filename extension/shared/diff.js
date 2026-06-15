@@ -2,6 +2,9 @@
  * Сравнение изображений (как в десктопном WatchAlert).
  */
 
+import { assertBrand } from "./brand.js";
+import { getSensitivityConfig, normalizeSensitivity } from "./sensitivity.js";
+
 export function imageDataBrightness(data) {
   let sum = 0;
   for (let i = 0; i < data.length; i += 4) {
@@ -45,27 +48,41 @@ export function downsample(data, w, h, size = 64) {
   return ctx.getImageData(0, 0, size, size).data;
 }
 
-import { assertBrand } from "./brand.js";
-
-export function imagesDiffer(a, b, aw, ah, bw, bh, threshold = 8) {
-  assertBrand();
+export function imageDiffStats(a, b, aw, ah, bw, bh) {
   const da = downsample(a, aw, ah);
   const db = downsample(b, bw, bh);
-  let diff = 0;
+  let diffSum = 0;
+  let changedPixels = 0;
+  const pixelCount = da.length / 4;
+  const pixelThreshold = 18;
   for (let i = 0; i < da.length; i += 4) {
-    diff +=
+    const d =
       (Math.abs(da[i] - db[i]) +
         Math.abs(da[i + 1] - db[i + 1]) +
         Math.abs(da[i + 2] - db[i + 2])) /
       3;
+    diffSum += d;
+    if (d >= pixelThreshold) changedPixels++;
   }
-  return diff / (da.length / 4) >= threshold;
+  return {
+    meanDiff: diffSum / pixelCount,
+    changedRatio: changedPixels / pixelCount,
+  };
+}
+
+export function imagesDiffer(a, b, aw, ah, bw, bh, sensitivityLevel = "medium") {
+  assertBrand();
+  const cfg = getSensitivityConfig(sensitivityLevel);
+  const { meanDiff, changedRatio } = imageDiffStats(a, b, aw, ah, bw, bh);
+  if (meanDiff < cfg.threshold) return false;
+  if (cfg.minChangedRatio <= 0) return true;
+  return changedRatio >= cfg.minChangedRatio;
 }
 
 export class ChangeTracker {
-  constructor(delaySeconds, sensitivity = 8) {
+  constructor(delaySeconds, sensitivity = "medium") {
     this.delaySeconds = delaySeconds;
-    this.sensitivity = sensitivity;
+    this.sensitivity = normalizeSensitivity(sensitivity);
     this.reference = null;
     this.refW = 0;
     this.refH = 0;
@@ -102,5 +119,26 @@ export class ChangeTracker {
       this.changeSince = null;
     }
     return false;
+  }
+}
+
+/** Обновить трекеры зон без сброса эталона. */
+export function syncZoneTrackers(trackers, monitor, delaySeconds, sensitivity) {
+  const level = normalizeSensitivity(sensitivity);
+  const zoneIds = new Set(monitor.zones.map((z) => z.id));
+
+  for (const id of [...trackers.keys()]) {
+    if (!zoneIds.has(id)) trackers.delete(id);
+  }
+
+  for (const zone of monitor.zones) {
+    let tracker = trackers.get(zone.id);
+    if (!tracker) {
+      tracker = new ChangeTracker(delaySeconds, level);
+      trackers.set(zone.id, tracker);
+    } else {
+      tracker.delaySeconds = delaySeconds;
+      tracker.sensitivity = level;
+    }
   }
 }

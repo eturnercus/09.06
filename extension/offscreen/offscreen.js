@@ -1,4 +1,5 @@
-import { cropImageData, ChangeTracker } from "../shared/diff.js";
+import { cropImageData, ChangeTracker, syncZoneTrackers } from "../shared/diff.js";
+import { normalizeSensitivity } from "../shared/sensitivity.js";
 import { browser } from "../shared/browser.js";
 
 const alarm = document.getElementById("alarm");
@@ -6,7 +7,7 @@ const alarm = document.getElementById("alarm");
 /** tabId -> session */
 const sessions = new Map();
 
-let settings = { delaySeconds: 5, sensitivity: 8, pollMs: 500, soundDataUrl: "" };
+let settings = { delaySeconds: 5, sensitivity: "medium", pollMs: 500, soundDataUrl: "" };
 let monitors = [];
 
 function stopSession(tabId) {
@@ -40,7 +41,12 @@ async function ensureSession(monitor) {
   if (sessions.has(monitor.tabId)) {
     const s = sessions.get(monitor.tabId);
     s.monitor = monitor;
-    s.trackers = buildTrackers(monitor);
+    syncZoneTrackers(
+      s.trackers,
+      monitor,
+      settings.delaySeconds,
+      settings.sensitivity
+    );
     return;
   }
 
@@ -74,8 +80,9 @@ async function ensureSession(monitor) {
 
 function buildTrackers(monitor) {
   const map = new Map();
+  const level = normalizeSensitivity(settings.sensitivity);
   for (const z of monitor.zones) {
-    map.set(z.id, new ChangeTracker(settings.delaySeconds, settings.sensitivity));
+    map.set(z.id, new ChangeTracker(settings.delaySeconds, level));
   }
   return map;
 }
@@ -155,7 +162,10 @@ async function syncState() {
 
 browser.runtime.onMessage.addListener((msg) => {
   if (msg.type === "OFFSCREEN_SYNC") {
-    settings = msg.settings;
+    settings = {
+      ...msg.settings,
+      sensitivity: normalizeSensitivity(msg.settings?.sensitivity),
+    };
     monitors = msg.monitors || [];
     if (settings.soundDataUrl) alarm.src = settings.soundDataUrl;
     syncState();

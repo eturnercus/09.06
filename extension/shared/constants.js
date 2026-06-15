@@ -2,7 +2,7 @@
 
 export const DEFAULT_SETTINGS = {
   delaySeconds: 5,
-  sensitivity: 8,
+  sensitivity: "medium",
   pollMs: 500,
   soundDataUrl: "",
   soundFileName: "",

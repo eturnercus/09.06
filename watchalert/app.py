@@ -15,6 +15,7 @@ from watchalert.audio import SoundPlayer
 from watchalert.brand import ui_mark, verify_brand
 from watchalert.monitor import RegionMonitor
 from watchalert.region import Region
+from watchalert.sensitivity import normalize_sensitivity
 from watchalert.capture_env import session_type
 from watchalert.screen_capture import (
     active_backend_name,
@@ -161,7 +162,7 @@ class WatchAlertApp:
         self._monitoring = False
 
         self.delay_var = tk.DoubleVar(value=5.0)
-        self.sensitivity_var = tk.DoubleVar(value=8.0)
+        self.sensitivity_var = tk.StringVar(value="medium")
         self.sound_path_var = tk.StringVar(value="")
 
         self.capture_status_var = tk.StringVar(value="Захват экрана: проверка…")
@@ -202,20 +203,18 @@ class WatchAlertApp:
         row2 = ttk.Frame(settings)
         row2.pack(fill=tk.X, pady=6)
         ttk.Label(row2, text="Чувствительность:").pack(side=tk.LEFT)
-        sens_spin = ttk.Spinbox(
+        sens_combo = ttk.Combobox(
             row2,
-            from_=1,
-            to=50,
-            increment=1,
             textvariable=self.sensitivity_var,
-            width=8,
+            values=("high", "medium", "low"),
+            state="readonly",
+            width=10,
         )
-        sens_spin.pack(side=tk.LEFT, padx=(8, 0))
-        sens_spin.bind("<FocusOut>", lambda _e: self._apply_settings())
-        sens_spin.bind("<Return>", lambda _e: self._apply_settings())
+        sens_combo.pack(side=tk.LEFT, padx=(8, 0))
+        sens_combo.bind("<<ComboboxSelected>>", lambda _e: self._apply_settings())
         ttk.Label(
             row2,
-            text="(меньше — чувствительнее)",
+            text="(сильная / средняя / слабая)",
             foreground="#666",
         ).pack(side=tk.LEFT, padx=(8, 0))
 
@@ -368,7 +367,7 @@ class WatchAlertApp:
 
     def _apply_settings(self) -> None:
         delay = max(1.0, float(self.delay_var.get()))
-        sens = max(1.0, float(self.sensitivity_var.get()))
+        sens = normalize_sensitivity(self.sensitivity_var.get())
         self.delay_var.set(delay)
         self.sensitivity_var.set(sens)
         for slot in self.slots:
@@ -469,7 +468,7 @@ class WatchAlertApp:
             return
 
         self.delay_var.set(data.get("delay_seconds", 5.0))
-        self.sensitivity_var.set(data.get("sensitivity", 8.0))
+        self.sensitivity_var.set(normalize_sensitivity(data.get("sensitivity", "medium")))
         sound = data.get("sound_path", "")
         if sound:
             self.sound_path_var.set(sound)

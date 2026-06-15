@@ -6,29 +6,32 @@ import threading
 import time
 from typing import Callable
 
-from PIL import Image, ImageChops, ImageStat
+from PIL import Image, ImageChops
 
 from watchalert.brand import verify_brand
 from watchalert.region import Region
 from watchalert.screen_capture import grab_region, recommended_poll_interval
+from watchalert.sensitivity import get_sensitivity_config, normalize_sensitivity
 
 
-def images_differ(
-    a: Image.Image,
-    b: Image.Image,
-    threshold: float = 8.0,
-) -> bool:
-    """True, если изображения заметно отличаются."""
-    if a.size != b.size:
-        return True
-    # Уменьшаем для быстрого сравнения — промежуточные кадры сразу освобождаем.
+def _image_diff_stats(a: Image.Image, b: Image.Image) -> tuple[float, float]:
     small_a = a.convert("RGB").resize((64, 64), Image.Resampling.BILINEAR)
     small_b = b.convert("RGB").resize((64, 64), Image.Resampling.BILINEAR)
     try:
         diff = ImageChops.difference(small_a, small_b)
-        stat = ImageStat.Stat(diff)
-        mean_diff = sum(stat.mean) / len(stat.mean)
-        return mean_diff >= threshold
+        pixels = list(diff.getdata())
+        if not pixels:
+            return 0.0, 0.0
+        diff_sum = 0.0
+        changed = 0
+        pixel_threshold = 18.0
+        for r, g, b in pixels:
+            d = (r + g + b) / 3.0
+            diff_sum += d
+            if d >= pixel_threshold:
+                changed += 1
+        count = len(pixels)
+        return diff_sum / count, changed / count
     finally:
         small_a.close()
         small_b.close()
@@ -36,12 +39,29 @@ def images_differ(
             diff.close()
 
 
+def images_differ(
+    a: Image.Image,
+    b: Image.Image,
+    sensitivity: str | float = "medium",
+) -> bool:
+    """True, если изображения заметно отличаются."""
+    if a.size != b.size:
+        return True
+    cfg = get_sensitivity_config(sensitivity)
+    mean_diff, changed_ratio = _image_diff_stats(a, b)
+    if mean_diff < cfg["threshold"]:
+        return False
+    if cfg["min_changed_ratio"] <= 0:
+        return True
+    return changed_ratio >= cfg["min_changed_ratio"]
+
+
 class ChangeTracker:
     """Состояние детектора: один сигнал на каждое новое устойчивое изменение."""
 
-    def __init__(self, delay_seconds: float, sensitivity: float = 8.0) -> None:
+    def __init__(self, delay_seconds: float, sensitivity: str | float = "medium") -> None:
         self.delay_seconds = delay_seconds
-        self.sensitivity = sensitivity
+        self.sensitivity = normalize_sensitivity(sensitivity)
         self._reference: Image.Image | None = None
         self._change_since: float | None = None
 
@@ -63,7 +83,7 @@ class ChangeTracker:
         # Старый кадр заменяется — на диск ничего не пишется, память освобождается GC.
 
         changed = images_differ(
-            self._reference, frame, threshold=self.sensitivity
+            self._reference, frame, sensitivity=self.sensitivity
         )
 
         if changed:
@@ -101,7 +121,7 @@ class RegionMonitor:
         on_frame: Callable[[Image.Image, bool], None] | None = None,
         on_error: Callable[[str], None] | None = None,
         poll_interval: float = 0.4,
-        sensitivity: float = 8.0,
+        sensitivity: str | float = "medium",
     ) -> None:
         self.region = region
         self.delay_seconds = delay_seconds
@@ -141,9 +161,9 @@ class RegionMonitor:
         self.delay_seconds = delay_seconds
         self._tracker.delay_seconds = delay_seconds
 
-    def update_sensitivity(self, sensitivity: float) -> None:
-        self.sensitivity = sensitivity
-        self._tracker.sensitivity = sensitivity
+    def update_sensitivity(self, sensitivity: str | float) -> None:
+        self.sensitivity = normalize_sensitivity(sensitivity)
+        self._tracker.sensitivity = self.sensitivity
 
     def reset_baseline(self) -> None:
         self._tracker.reset_baseline()

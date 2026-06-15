@@ -1,5 +1,6 @@
 import { browser } from "../shared/browser.js";
 import { uiMark } from "../shared/brand.js";
+import { normalizeSensitivity } from "../shared/sensitivity.js";
 
 const delayInput = document.getElementById("delay");
 const sensInput = document.getElementById("sensitivity");
@@ -17,10 +18,11 @@ async function send(type, payload = {}) {
 function readSettingsFromForm() {
   return {
     delaySeconds: Math.max(1, Number(delayInput.value) || 5),
-    sensitivity: Math.max(1, Number(sensInput.value) || 8),
+    sensitivity: normalizeSensitivity(sensInput.value),
     pollMs: 500,
     soundDataUrl: state.settings.soundDataUrl || "",
     soundFileName: state.settings.soundFileName || "",
+    pinnedWindow: state.settings.pinnedWindow ?? null,
   };
 }
 
@@ -202,7 +204,7 @@ async function refresh() {
   state.monitors = res.monitors || [];
   state.settings = res.settings || {};
   delayInput.value = state.settings.delaySeconds ?? 5;
-  sensInput.value = state.settings.sensitivity ?? 8;
+  sensInput.value = normalizeSensitivity(state.settings.sensitivity ?? "medium");
   updateSoundLabel();
   updatePinStatus();
   const brandEl = document.getElementById("brand-mark");

@@ -18,7 +18,11 @@
       </label>
       <label>
         Чувствительность
-        <input id="sensitivity" type="number" min="1" max="50" value="8" />
+        <select id="sensitivity">
+          <option value="high">Сильная — на любое</option>
+          <option value="medium" selected>Средняя — на часть</option>
+          <option value="low">Слабая — смена картинки</option>
+        </select>
       </label>
       <div class="sound-row">
         <span class="sound-label">Звук</span>

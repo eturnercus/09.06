@@ -255,6 +255,7 @@ browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (settings.pinnedWindow) {
           await refreshPinnedUrls(settings, await getMonitors());
         }
+        await syncCapture();
         sendResponse({ monitor });
         break;
       }
@@ -340,6 +341,11 @@ browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
       case "OFFSCREEN_READY": {
         await syncOffscreen();
+        sendResponse({ ok: true });
+        break;
+      }
+      case "FF_MONITOR_READY": {
+        if (isFirefox) await syncFirefoxCapture();
         sendResponse({ ok: true });
         break;
       }

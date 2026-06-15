@@ -81,6 +81,8 @@ done
 
 check "offscreen sends OFFSCREEN_READY" grep -q OFFSCREEN_READY "$EXT/offscreen/offscreen.js"
 check "service-worker handles OFFSCREEN_READY" grep -q OFFSCREEN_READY "$EXT/background/service-worker.js"
+check "ff-monitor sends FF_MONITOR_READY" grep -q FF_MONITOR_READY "$EXT/pages/ff-monitor.js"
+check "service-worker handles FF_MONITOR_READY" grep -q FF_MONITOR_READY "$EXT/background/service-worker.js"
 
 CRITICAL_MODULES=(
   background/service-worker.js

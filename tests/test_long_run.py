@@ -14,7 +14,7 @@ def solid(color: tuple[int, int, int]) -> Image.Image:
 class TestLongRunStability(unittest.TestCase):
     def test_many_frames_constant_memory_pattern(self) -> None:
         """Тысячи кадров без накопления — только один эталон в трекере."""
-        tracker = ChangeTracker(delay_seconds=2.0, sensitivity=8.0)
+        tracker = ChangeTracker(delay_seconds=2.0, sensitivity="medium")
         base = solid((10, 10, 10))
         alarms = 0
         t = 0.0

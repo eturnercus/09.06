@@ -33,7 +33,7 @@ class TestWatchAlertGui(unittest.TestCase):
 
     def test_settings_variables_exist(self) -> None:
         self.assertGreaterEqual(self.app.delay_var.get(), 1.0)
-        self.assertGreaterEqual(self.app.sensitivity_var.get(), 1.0)
+        self.assertIn(self.app.sensitivity_var.get(), ("high", "medium", "low"))
         self.assertIsInstance(self.app.sound_path_var.get(), str)
 
     def test_main_controls_present(self) -> None:

@@ -23,7 +23,7 @@ class TestImagesDiffer(unittest.TestCase):
 class TestChangeTracker(unittest.TestCase):
     def setUp(self) -> None:
         self.delay = 2.0
-        self.tracker = ChangeTracker(delay_seconds=self.delay, sensitivity=8.0)
+        self.tracker = ChangeTracker(delay_seconds=self.delay, sensitivity="medium")
         self.t0 = 1000.0
         self.baseline = solid((0, 0, 0))
         self.changed = solid((255, 255, 255))
