@@ -52,8 +52,8 @@ async function captureFrame(tabId) {
   if (res?.error) throw new Error(res.error);
   if (!res?.dataUrl) throw new Error("captureTab: empty response");
   const dataUrl = res.dataUrl;
-  const res = await fetch(dataUrl);
-  const blob = await res.blob();
+  const fetchRes = await fetch(dataUrl);
+  const blob = await fetchRes.blob();
   const bitmap = await createImageBitmap(blob);
   const w = bitmap.width;
   const h = bitmap.height;
@@ -141,7 +141,7 @@ browser.storage.session.get(FF_MONITOR_CMD_KEY).then((data) => {
   if (data[FF_MONITOR_CMD_KEY]) handleCommand(data[FF_MONITOR_CMD_KEY]);
 });
 
-browser.storage.onChanged.addListener((changes, area) => {
+browser.storage.session.onChanged.addListener((changes, area) => {
   if (area !== "session" || !changes[FF_MONITOR_CMD_KEY]) return;
   handleCommand(changes[FF_MONITOR_CMD_KEY].newValue);
 });

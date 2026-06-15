@@ -120,6 +120,7 @@ globalThis.chrome = {
   },
   storage: {
     local: { get: async () => ({}), set: async () => {} },
+    onChanged: L,
     session: {
       get: async () => ({}),
       set: async () => {},
@@ -148,8 +149,29 @@ for rel in "${CRITICAL_MODULES[@]}"; do
   fi
 done
 
-# UI-скрипты: проверка синтаксиса (ESM, без выполнения)
-for rel in pages/ff-monitor.js pages/sound-picker.js popup/popup.js; do
+# UI-скрипты: полная проверка ESM (с моком DOM для страниц)
+MOCK_DOM='
+globalThis.document = {
+  getElementById: (id) => ({
+    id,
+    textContent: "",
+    set src(v) {},
+    play: async () => {},
+  }),
+};
+'
+
+for rel in pages/ff-monitor.js pages/sound-picker.js; do
+  if ! node --input-type=module --eval "$MOCK_BROWSER; $MOCK_DOM; await import('file://$EXT/$rel');" 2>/dev/null; then
+    red "FAIL  ES module import: $rel"
+    node --input-type=module --eval "$MOCK_BROWSER; $MOCK_DOM; await import('file://$EXT/$rel');" 2>&1 | head -8
+    FAIL=1
+  else
+    green "OK  ES module import: $rel"
+  fi
+done
+
+for rel in popup/popup.js; do
   if node --check "$EXT/$rel" 2>/dev/null; then
     green "OK  syntax: $rel"
   else
@@ -161,7 +183,7 @@ done
 
 check "service-worker defines OFFSCREEN_URL" grep -q 'const OFFSCREEN_URL' "$EXT/background/service-worker.js"
 check "service-worker has FF_CAPTURE_TAB" grep -q 'FF_CAPTURE_TAB' "$EXT/background/service-worker.js"
-check "ff-monitor uses background capture" grep -q 'FF_CAPTURE_TAB' "$EXT/pages/ff-monitor.js"
+check "ff-monitor listens storage.session.onChanged" grep -q 'storage.session.onChanged' "$EXT/pages/ff-monitor.js"
 check "firefox-sync uses storage.session" grep -q 'storage.session' "$EXT/background/firefox-sync.js"
 check "brand mark length check" node --input-type=module -e "import { assertBrand } from './extension/shared/brand.js'; assertBrand();"
 
