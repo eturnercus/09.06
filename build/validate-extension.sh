@@ -155,6 +155,7 @@ globalThis.document = {
   getElementById: (id) => ({
     id,
     textContent: "",
+    addEventListener() {},
     set src(v) {},
     play: async () => {},
   }),
