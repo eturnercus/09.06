@@ -18,6 +18,9 @@ export const STORAGE_KEYS = {
   monitors: "monitors",
 };
 
+/** Команда для ff-monitor (Firefox), через storage.session. */
+export const FF_MONITOR_CMD_KEY = "__ffMonitorCmd";
+
 export function uid() {
   return `z_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }

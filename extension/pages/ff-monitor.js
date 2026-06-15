@@ -1,5 +1,7 @@
 import { browser } from "../shared/browser.js";
 import { cropImageData, ChangeTracker } from "../shared/diff.js";
+import { FF_MONITOR_CMD_KEY } from "../shared/constants.js";
+import { notifyAlarm, playAlarmInTab } from "../shared/play-alarm.js";
 
 const alarm = document.getElementById("alarm");
 
@@ -27,28 +29,19 @@ function stopAll() {
   for (const tabId of [...sessions.keys()]) stopSession(tabId);
 }
 
-function beep() {
-  const ctx = new AudioContext();
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.connect(gain);
-  gain.connect(ctx.destination);
-  osc.frequency.value = 880;
-  gain.gain.value = 0.15;
-  osc.start();
-  setTimeout(() => {
-    osc.stop();
-    ctx.close();
-  }, 400);
-}
-
-function playAlarm() {
-  if (settings.soundDataUrl) {
-    alarm.src = settings.soundDataUrl;
-    alarm.play().catch(() => beep());
-  } else {
-    beep();
+async function playAlarm(tabId, label) {
+  const played = await playAlarmInTab(tabId, settings.soundDataUrl || "");
+  if (!played) {
+    if (settings.soundDataUrl) {
+      try {
+        alarm.src = settings.soundDataUrl;
+        await alarm.play();
+      } catch {
+        /* fallback below */
+      }
+    }
   }
+  await notifyAlarm(label);
 }
 
 async function captureFrame(tabId) {
@@ -83,7 +76,7 @@ async function tickSession(tabId) {
     if (!tracker) continue;
     const crop = cropImageData(frame.data, frame.w, frame.h, zone);
     if (tracker.process(crop.data, crop.w, crop.h, now)) {
-      playAlarm();
+      await playAlarm(tabId, zone.label);
       browser.runtime
         .sendMessage({
           type: "ALARM",
@@ -125,7 +118,8 @@ function syncState(monitors) {
   }
 }
 
-browser.runtime.onMessage.addListener((msg) => {
+function handleCommand(msg) {
+  if (!msg?.type) return;
   if (msg.type === "FF_MONITOR_SYNC") {
     settings = msg.settings || settings;
     if (settings.soundDataUrl) alarm.src = settings.soundDataUrl;
@@ -133,5 +127,20 @@ browser.runtime.onMessage.addListener((msg) => {
   }
   if (msg.type === "FF_MONITOR_STOP_ALL") {
     stopAll();
+  }
+}
+
+browser.storage.session.get(FF_MONITOR_CMD_KEY).then((data) => {
+  if (data[FF_MONITOR_CMD_KEY]) handleCommand(data[FF_MONITOR_CMD_KEY]);
+});
+
+browser.storage.onChanged.addListener((changes, area) => {
+  if (area !== "session" || !changes[FF_MONITOR_CMD_KEY]) return;
+  handleCommand(changes[FF_MONITOR_CMD_KEY].newValue);
+});
+
+browser.runtime.onMessage.addListener((msg) => {
+  if (msg.type === "FF_MONITOR_SYNC" || msg.type === "FF_MONITOR_STOP_ALL") {
+    handleCommand(msg);
   }
 });

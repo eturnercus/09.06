@@ -14,9 +14,7 @@ import {
   buildPinnedWindow,
   refreshPinnedFromMonitors,
   resolvePinnedSession,
-} from "../shared/window-pin.js";
-
-const OFFSCREEN_URL = "offscreen/offscreen.html";
+} from "../shared/window-pin.js"; = "offscreen/offscreen.html";
 let offscreenReady = false;
 
 function supportsOffscreen() {
@@ -131,11 +129,15 @@ async function tryRestorePinnedOnStartup() {
 }
 
 async function injectZoneSelector(tabId) {
-  await browser.scripting.executeScript({
-    target: { tabId },
-    files: ["content/zone-selector.js"],
-  });
-  await browser.tabs.sendMessage(tabId, { type: "START_ZONE_SELECT" });
+  try {
+    await browser.tabs.sendMessage(tabId, { type: "START_ZONE_SELECT" });
+  } catch {
+    await browser.scripting.executeScript({
+      target: { tabId },
+      files: ["content/zone-selector.js"],
+    });
+    await browser.tabs.sendMessage(tabId, { type: "START_ZONE_SELECT" });
+  }
 }
 
 browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -240,6 +242,8 @@ browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           y: msg.zone.y,
           w: msg.zone.w,
           h: msg.zone.h,
+          viewportW: msg.zone.viewportW || 0,
+          viewportH: msg.zone.viewportH || 0,
           label: `Зона ${monitor.zones.length + 1}`,
         });
         await upsertMonitor(monitor);
@@ -335,6 +339,7 @@ browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       case "OFFSCREEN_SYNC":
       case "OFFSCREEN_STOP_ALL":
       case "PLAY_ALARM":
+        sendResponse({ ok: true });
         break;
       default:
         sendResponse({ error: "unknown" });

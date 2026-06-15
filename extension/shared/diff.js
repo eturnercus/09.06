@@ -11,10 +11,14 @@ export function imageDataBrightness(data) {
 }
 
 export function cropImageData(full, fullW, fullH, zone) {
-  const x = Math.floor(zone.x * fullW);
-  const y = Math.floor(zone.y * fullH);
-  const w = Math.max(1, Math.floor(zone.w * fullW));
-  const h = Math.max(1, Math.floor(zone.h * fullH));
+  const viewportW = zone.viewportW > 0 ? zone.viewportW : fullW;
+  const viewportH = zone.viewportH > 0 ? zone.viewportH : fullH;
+  const scaleX = fullW / viewportW;
+  const scaleY = fullH / viewportH;
+  const x = Math.floor(zone.x * viewportW * scaleX);
+  const y = Math.floor(zone.y * viewportH * scaleY);
+  const w = Math.max(1, Math.floor(zone.w * viewportW * scaleX));
+  const h = Math.max(1, Math.floor(zone.h * viewportH * scaleY));
   const out = new Uint8ClampedArray(w * h * 4);
   for (let row = 0; row < h; row++) {
     for (let col = 0; col < w; col++) {

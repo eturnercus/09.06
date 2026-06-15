@@ -1,4 +1,5 @@
 import { browser } from "../shared/browser.js";
+import { FF_MONITOR_CMD_KEY } from "../shared/constants.js";
 import { getMonitors, getSettings } from "../shared/storage.js";
 
 const MONITOR_PAGE = "pages/ff-monitor.html";
@@ -17,15 +18,11 @@ async function waitTabComplete(tabId) {
   });
 }
 
-async function sendToMonitorPage(payload) {
-  for (let i = 0; i < 15; i++) {
-    try {
-      await browser.runtime.sendMessage(payload);
-      return;
-    } catch {
-      await new Promise((r) => setTimeout(r, 100));
-    }
-  }
+/** Команды для pages/ff-monitor.html через storage (runtime.sendMessage в Firefox ненадёжен). */
+export async function sendToMonitorPage(payload) {
+  await browser.storage.session.set({
+    [FF_MONITOR_CMD_KEY]: { ...payload, at: Date.now() },
+  });
 }
 
 export async function syncFirefoxCapture() {
@@ -59,7 +56,7 @@ export async function syncFirefoxCapture() {
         await browser.tabs.get(m.tabId);
         await browser.tabs.update(m.tabId, { autoDiscardable: false });
       } catch {
-        /* tab gone — cleaned up elsewhere */
+        /* tab gone */
       }
     }
   }
