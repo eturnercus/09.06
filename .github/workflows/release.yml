@@ -45,10 +45,10 @@ jobs:
         run: pip install -r requirements.txt pyinstaller
       - name: Build Windows exe
         run: |
-          mkdir -p artifacts
+          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
           $env:WATCHALERT_ROOT = $PWD
           python -m PyInstaller build/watchalert.spec --distpath build/pyinstaller-dist --workpath build/pyinstaller-work --noconfirm
-          cp build/pyinstaller-dist/WatchAlert.exe artifacts/WatchAlert-windows-x86_64.exe
+          Copy-Item build/pyinstaller-dist/WatchAlert.exe artifacts/WatchAlert-windows-x86_64.exe
         shell: pwsh
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4

@@ -30,6 +30,7 @@ hiddenimports = collect_submodules("mss") + collect_submodules("jeepney") + [
     "watchalert",
     "watchalert.app",
     "watchalert.audio",
+    "watchalert.brand",
     "watchalert.capture_backends",
     "watchalert.capture_env",
     "watchalert.capture_portal",
