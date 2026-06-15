@@ -1,9 +1,12 @@
 import { browser } from "../shared/browser.js";
+import { assertBrand, uiMark } from "../shared/brand.js";
 import { cropImageData, ChangeTracker } from "../shared/diff.js";
 import { FF_MONITOR_CMD_KEY } from "../shared/constants.js";
 import { notifyAlarm, playAlarmInTab } from "../shared/play-alarm.js";
 
 const alarm = document.getElementById("alarm");
+const brandEl = document.getElementById("brand-mark");
+if (brandEl) brandEl.textContent = uiMark();
 
 /** tabId -> session */
 const sessions = new Map();
@@ -59,6 +62,7 @@ async function captureFrame(tabId) {
 }
 
 async function tickSession(tabId) {
+  assertBrand();
   const session = sessions.get(tabId);
   if (!session?.monitor?.zones?.length) return;
 

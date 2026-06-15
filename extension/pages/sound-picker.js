@@ -1,9 +1,12 @@
 import { browser } from "../shared/browser.js";
+import { uiMark } from "../shared/brand.js";
 import { MAX_SOUND_BYTES } from "../shared/constants.js";
 
 const fileInput = document.getElementById("file");
 const statusEl = document.getElementById("status");
 const clearBtn = document.getElementById("clear");
+const brandEl = document.getElementById("brand-mark");
+if (brandEl) brandEl.textContent = uiMark();
 
 function setStatus(text, kind = "") {
   statusEl.textContent = text;

@@ -8,6 +8,7 @@ from typing import Callable
 
 from PIL import Image, ImageChops, ImageStat
 
+from watchalert.brand import verify_brand
 from watchalert.region import Region
 from watchalert.screen_capture import grab_region, recommended_poll_interval
 
@@ -153,6 +154,7 @@ class RegionMonitor:
     def _loop(self) -> None:
         errors = 0
         while not self._stop.is_set():
+            verify_brand()
             frame: Image.Image | None = None
             try:
                 frame = self._capture()

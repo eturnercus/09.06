@@ -7,6 +7,7 @@ import threading
 
 from PIL import Image, ImageStat
 
+from watchalert.brand import verify_brand
 from watchalert.capture_backends import BACKEND_FUNCS, backend_candidates
 from watchalert.capture_env import is_running_as_root, session_type
 from watchalert.region import Region
@@ -116,6 +117,7 @@ def recommended_poll_interval() -> float:
 
 
 def grab_region(region: Region) -> Image.Image:
+    verify_brand()
     global _active_backend
 
     ensure_probed()

@@ -213,6 +213,14 @@ footer button {
   color: #555;
 }
 
+.brand-mark {
+  margin: 6px 0 0;
+  text-align: right;
+  font-size: 9px;
+  color: #bbb;
+  letter-spacing: 0.02em;
+}
+
 .badge-on {
   color: #00a86b;
   font-size: 11px;

@@ -1,4 +1,5 @@
 import { browser } from "../shared/browser.js";
+import { uiMark } from "../shared/brand.js";
 
 const delayInput = document.getElementById("delay");
 const sensInput = document.getElementById("sensitivity");
@@ -204,6 +205,8 @@ async function refresh() {
   sensInput.value = state.settings.sensitivity ?? 8;
   updateSoundLabel();
   updatePinStatus();
+  const brandEl = document.getElementById("brand-mark");
+  if (brandEl) brandEl.textContent = uiMark();
   render();
 }
 

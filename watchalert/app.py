@@ -12,6 +12,7 @@ from typing import Any
 from PIL import Image, ImageTk
 
 from watchalert.audio import SoundPlayer
+from watchalert.brand import ui_mark, verify_brand
 from watchalert.monitor import RegionMonitor
 from watchalert.region import Region
 from watchalert.capture_env import session_type
@@ -280,6 +281,15 @@ class WatchAlertApp:
             foreground="#444",
         )
         footer.pack(fill=tk.X, pady=(10, 0))
+
+        verify_brand()
+        brand = ttk.Label(
+            main,
+            text=ui_mark(),
+            foreground="#aaa",
+            font=("TkDefaultFont", 8),
+        )
+        brand.pack(anchor=tk.E, pady=(4, 0))
 
     def _browse_sound(self) -> None:
         path = filedialog.askopenfilename(

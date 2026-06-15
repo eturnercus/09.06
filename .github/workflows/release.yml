@@ -26,11 +26,13 @@ jobs:
           mkdir -p artifacts
           ./build/build.sh
       - name: Upload Linux artifacts
-        uses: softprops/action-gh-release@v2
+        uses: actions/upload-artifact@v4
         with:
-          files: |
+          name: linux-build
+          path: |
             artifacts/WatchAlert-linux-x86_64
             artifacts/WatchAlert-x86_64.AppImage
+          if-no-files-found: error
 
   build-windows:
     runs-on: windows-latest
@@ -44,14 +46,16 @@ jobs:
       - name: Build Windows exe
         run: |
           mkdir -p artifacts
-          set WATCHALERT_ROOT=%CD%
+          $env:WATCHALERT_ROOT = $PWD
           python -m PyInstaller build/watchalert.spec --distpath build/pyinstaller-dist --workpath build/pyinstaller-work --noconfirm
-          copy build\pyinstaller-dist\WatchAlert.exe artifacts\WatchAlert-windows-x86_64.exe
-        shell: cmd
+          cp build/pyinstaller-dist/WatchAlert.exe artifacts/WatchAlert-windows-x86_64.exe
+        shell: pwsh
       - name: Upload Windows artifact
-        uses: softprops/action-gh-release@v2
+        uses: actions/upload-artifact@v4
         with:
-          files: artifacts/WatchAlert-windows-x86_64.exe
+          name: windows-build
+          path: artifacts/WatchAlert-windows-x86_64.exe
+          if-no-files-found: error
 
   build-extension:
     runs-on: ubuntu-latest
@@ -63,8 +67,33 @@ jobs:
           sudo apt-get install -y zip
           ./build/build-extension.sh
       - name: Upload extension artifacts
-        uses: softprops/action-gh-release@v2
+        uses: actions/upload-artifact@v4
         with:
-          files: |
+          name: extension-build
+          path: |
             artifacts/WatchAlert-Tab-chrome.zip
             artifacts/WatchAlert-Tab-firefox.zip
+          if-no-files-found: error
+
+  publish-release:
+    needs: [build-linux, build-windows, build-extension]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+      - name: List release files
+        run: find release-assets -type f | sort
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            release-assets/WatchAlert-linux-x86_64
+            release-assets/WatchAlert-x86_64.AppImage
+            release-assets/WatchAlert-windows-x86_64.exe
+            release-assets/WatchAlert-Tab-chrome.zip
+            release-assets/WatchAlert-Tab-firefox.zip

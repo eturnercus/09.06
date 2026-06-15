@@ -1,7 +1,9 @@
 import { DEFAULT_SETTINGS, STORAGE_KEYS } from "../shared/constants.js";
 import { browser } from "./browser.js";
+import { assertBrand } from "./brand.js";
 
 export async function getSettings() {
+  assertBrand();
   const data = await browser.storage.local.get(STORAGE_KEYS.settings);
   return { ...DEFAULT_SETTINGS, ...(data[STORAGE_KEYS.settings] || {}) };
 }

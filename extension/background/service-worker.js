@@ -8,6 +8,7 @@ import {
 } from "../shared/storage.js";
 import { uid } from "../shared/constants.js";
 import { browser } from "../shared/browser.js";
+import { assertBrand } from "../shared/brand.js";
 import { isFirefox } from "../shared/platform.js";
 import { syncFirefoxCapture } from "./firefox-sync.js";
 import {
@@ -93,6 +94,7 @@ async function syncOffscreen() {
 }
 
 async function syncCapture() {
+  assertBrand();
   if (isFirefox) {
     await syncFirefoxCapture();
     return;

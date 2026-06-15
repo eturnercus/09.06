@@ -87,6 +87,8 @@ python -m watchalert.main
 
 Готовые сборки десктопного приложения и **zip-архивы расширения для браузера** — на странице [Releases](https://github.com/eturnercus/09.06/releases).
 
+Каждый релиз содержит **все пять файлов**: Linux AppImage, Linux binary, Windows exe, Chrome zip, Firefox zip.
+
 | Артефакт | Описание |
 |----------|----------|
 | `WatchAlert-Tab-chrome.zip` | Расширение для Chrome / Edge |

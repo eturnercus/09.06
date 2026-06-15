@@ -45,7 +45,10 @@ export function downsample(data, w, h, size = 64) {
   return ctx.getImageData(0, 0, size, size).data;
 }
 
+import { assertBrand } from "./brand.js";
+
 export function imagesDiffer(a, b, aw, ah, bw, bh, threshold = 8) {
+  assertBrand();
   const da = downsample(a, aw, ah);
   const db = downsample(b, bw, bh);
   let diff = 0;
